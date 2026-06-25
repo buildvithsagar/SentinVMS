@@ -1,0 +1,25 @@
+# IDE and Editor files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Flutter / Dart files (nested in mobile/)
+mobile/.dart_tool/
+mobile/.flutter-plugins-dependencies
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/ios/Flutter/.last_build_id
+mobile/android/app/debug
+mobile/android/app/profile
+mobile/android/app/release
+
+# Local log files
+*.log
