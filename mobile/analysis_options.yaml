@@ -1,0 +1,19 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  errors:
+    avoid_print: error
+    prefer_const_constructors: warning
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+
+linter:
+  rules:
+    avoid_dynamic_calls: true
+    avoid_type_to_string: true
+    no_adjacent_strings_in_list: true
+    prefer_final_locals: true
+    avoid_classes_with_only_static_members: true
+    public_member_api_docs: false
+    lines_longer_than_80_chars: false

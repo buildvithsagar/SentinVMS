@@ -1,0 +1,47 @@
+S. No,VMS Feature List,Remarks
+1,"Camera Integration: ONVIF S, G, T, M support, auto-discovery, add/remove cameras easily.",Standard Edition
+2,"Live View: Single/multi-camera view (upto max camera support based on Gsteamer limitation), basic & multiple screen layouts",Standard Edition
+3,Video View: PTZ control with play and stop button,Standard Edition
+4,"Recording: Continuous & motion-based recording, simple schedules",Standard Edition
+5,"Playback: Timeline scrubbing, fast forward/rewind upto 16x, thumbnails",Standard Edition
+6,"Filtering and Export: Save clips with watermark, share with in-built player, quick navigation",Standard Edition
+7,"User Management: Basic roles (Admin, Operator, Viewer)",Standard Edition
+8,"Health Monitoring: Camera online/offline status, storage usage alerts",Standard Edition
+9,"Mobile/Web Access: View live and playback remotely (In mobile App Advance features - PTZ, 2-way audio, historical playing, multi-site selection, role-based access)",Standard Edition
+10,"Security: TLS/HTTPS, password protection, audit logs (basic)",Standard Edition
+11,Multi-Site Support: Manage multiple locations from one interface,Mid-level Feature
+12,"Advanced Recording: Event-based (I/O triggers), motion zones",Mid-level Feature
+13,"Smart Timeline & Search: Motion heatmaps, bookmarking, case management",Mid-level Feature
+14,"Video Wall / Command Center: Multi-monitor layouts, camera cycling",Mid-level Feature
+15,"Events & Alerts: Rule-based workflows (motion ? alert operator, trigger siren)",Mid-level Feature
+16,Role-Based Access Control (RBAC): Fine-grained user permissions,Mid-level Feature
+17,"System Health Monitoring: Uptime, alerts, log management",Mid-level Feature
+18,Cameras would have provision for inbuilt edge storage up to 512GB for continuous or event-based recording if NVRs are not deployed as part of solution on any specific site.,Mid-level Feature
+19,Ticketing module development to monitor the events,Mid-level Feature
+20,Evidence Lock feature,Mid-level Feature
+21,Multiple Language Support ,Mid-level Feature
+22,Timestamp & Time Synchronization,Mid-level Feature
+23,Key Board Shortcut Key,Mid-level Feature
+20,Centralized Federation (Distributed servers & federation),Advance Feature
+21,"High-availability (failover servers, redundant SQL & management servers)",Advance Feature
+22,Storage Tiering - Hot / warm / archive/,Advance Feature
+23,"Edge storage sync (ANR, failover replay)",Advance Feature
+24,"Advanced Recording: Event-based (I/O triggers), motion zones",Advance Feature
+25,Workflow automation (Event-Action Manager),Advance Feature
+26,Hardware compatibility verification -Mac mini system with built GPU,Advance Feature
+27,Client Server camera Architecture Optimization,Advance Feature
+28,VMS Android and IOS APP Version,Advance Feature
+29,GIS Mapping Feature,Advance Feature
+30,Enterprise integrations,Advance Feature
+31,Codec agnostic cameras,Tender Feature
+32,SNMP V2/V3,Tender Feature
+33,Digital video signing: NF,Tender Feature
+34,multilayer mapping,Tender Feature
+35,SDK/API with CCC,Tender Feature
+36,OPC compliance,Tender Feature
+37,Joystick support <=Ê for PTZ,Tender Feature
+38,Instant replay audio & video <= need to maintainÊÊrolling live buffer,Tender Feature
+39,Mobile streaming with GPS,Tender Feature
+40,"Enterprise integrations (Fire, PIDS,SCADA,IOT) additional platform",Tender Feature
+,,
+,"All Third-party integrations (SCADA, PIDS, OPC etc ) are subject to availability of vendor documentation / test systems",
