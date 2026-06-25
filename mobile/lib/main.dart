@@ -4,8 +4,13 @@ import 'package:app/core/network/dio_factory.dart';
 import 'package:app/core/network/websocket_service.dart';
 import 'package:app/core/storage/secure_storage_service.dart';
 import 'package:app/core/video/decoder_pool.dart';
+import 'package:app/features/alarms/bloc/alarm_bloc.dart';
+import 'package:app/features/alarms/bloc/alarm_event.dart';
+import 'package:app/features/alarms/data/alarm_repository.dart';
 import 'package:app/features/camera/data/camera_repository.dart';
+import 'package:app/features/export/data/export_repository.dart';
 import 'package:app/features/login/data/auth_repository.dart';
+import 'package:app/features/playback/data/playback_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -45,6 +50,34 @@ void main() {
 
   final webSocketService = WebSocketService(authBloc: authBloc);
   getIt.registerSingleton<WebSocketService>(webSocketService);
+
+  final playbackRepository = PlaybackRepository(dio: dio);
+  getIt.registerSingleton<PlaybackRepository>(playbackRepository);
+
+  final alarmRepository = AlarmRepository(dio: dio);
+  getIt.registerSingleton<AlarmRepository>(alarmRepository);
+
+  final exportRepository = ExportRepository(dio: dio);
+  getIt.registerSingleton<ExportRepository>(exportRepository);
+
+  final alarmBloc = AlarmBloc(alarmRepository: alarmRepository);
+  getIt.registerSingleton<AlarmBloc>(alarmBloc);
+
+  webSocketService.eventStream.listen((event) {
+    if (event['event'] == 'alarm' && event['data'] != null) {
+      alarmBloc.add(
+        AlarmReceived(
+          alarmData: event['data'] as Map<String, dynamic>,
+        ),
+      );
+    } else if (event['eventClass'] != null) {
+      alarmBloc.add(
+        AlarmReceived(
+          alarmData: event,
+        ),
+      );
+    }
+  });
 
   runApp(const MyApp());
 }

@@ -2,13 +2,18 @@ import 'dart:async';
 import 'package:app/core/auth/auth_bloc.dart';
 import 'package:app/core/auth/auth_state.dart';
 import 'package:app/core/network/websocket_service.dart';
+import 'package:app/features/alarms/bloc/alarm_bloc.dart';
+import 'package:app/features/alarms/bloc/alarm_event.dart';
+import 'package:app/features/alarms/presentation/alarm_list_page.dart';
 import 'package:app/features/camera/bloc/camera_bloc.dart';
 import 'package:app/features/camera/data/camera_repository.dart';
 import 'package:app/features/camera/presentation/camera_list_page.dart';
+import 'package:app/features/export/presentation/export_page.dart';
 import 'package:app/features/live_view/live_grid_page.dart';
 import 'package:app/features/login/bloc/login_bloc.dart';
 import 'package:app/features/login/data/auth_repository.dart';
 import 'package:app/features/login/login_page.dart';
+import 'package:app/features/playback/presentation/playback_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -91,25 +96,22 @@ class AppRouter {
       GoRoute(
         path: '/playback',
         builder: (BuildContext context, GoRouterState state) {
-          return const Scaffold(
-            body: Center(child: Text('PlaybackPage Stub')),
-          );
+          return const PlaybackPage();
         },
       ),
       GoRoute(
         path: '/alarms',
         builder: (BuildContext context, GoRouterState state) {
-          return const Scaffold(
-            body: Center(child: Text('AlarmsPage Stub')),
+          return BlocProvider<AlarmBloc>.value(
+            value: GetIt.instance<AlarmBloc>()..add(const FetchAlarms()),
+            child: const AlarmListPage(),
           );
         },
       ),
       GoRoute(
         path: '/exports',
         builder: (BuildContext context, GoRouterState state) {
-          return const Scaffold(
-            body: Center(child: Text('ExportsPage Stub')),
-          );
+          return const ExportPage();
         },
       ),
     ],
