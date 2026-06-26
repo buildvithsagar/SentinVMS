@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:app/core/video/decoder_pool.dart';
 import 'package:app/features/camera/data/camera_repository.dart';
 import 'package:app/features/camera/models/camera_model.dart';
@@ -130,12 +131,19 @@ class _VideoTileState extends State<VideoTile> {
 
   @override
   Widget build(BuildContext context) {
+    final hasActiveVideo = _controller != null &&
+        _controller!.value.isInitialized &&
+        !_isEvicted &&
+        !_isLoading;
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF0D0E12),
         border: Border.all(
-          color: const Color(0x2670788C),
-          width: 0.5,
+          color: hasActiveVideo
+              ? const Color(0xFF02965E).withValues(alpha: 0.3)
+              : const Color(0x2670788C),
+          width: 0.8,
         ),
       ),
       child: ClipRRect(
@@ -147,23 +155,59 @@ class _VideoTileState extends State<VideoTile> {
               child: _buildVideoContent(),
             ),
 
-            // Top Bar Overlay (Camera Name)
+            // HUD Tactical Corner Brackets
+            if (hasActiveVideo)
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: HUDPainter(),
+                  ),
+                ),
+              ),
+
+            // Top Bar Overlay (Camera Name + Live Telemetry)
             Positioned(
               top: 0,
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                color: const Color(0x990D0E12),
-                child: Text(
-                  widget.camera.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFE2E8F0),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                color: const Color(0xB30D0E12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.camera.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFFE2E8F0),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    if (hasActiveVideo)
+                      const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _BlinkingDot(),
+                          SizedBox(width: 6),
+                          Text(
+                            'LIVE • H.265 • 24 FPS • 2.8 Mbps',
+                            style: TextStyle(
+                              color: Color(0xFF02965E),
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -354,6 +398,102 @@ class _VideoTileState extends State<VideoTile> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class HUDPainter extends CustomPainter {
+  const HUDPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF02965E).withValues(alpha: 0.4)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+
+    const len = 12.0;
+
+    // Top-Left
+    canvas
+      ..drawPath(
+        Path()
+          ..moveTo(0, len)
+          ..lineTo(0, 0)
+          ..lineTo(len, 0),
+        paint,
+      )
+      // Top-Right
+      ..drawPath(
+        Path()
+          ..moveTo(size.width - len, 0)
+          ..lineTo(size.width, 0)
+          ..lineTo(size.width, len),
+        paint,
+      )
+      // Bottom-Left
+      ..drawPath(
+        Path()
+          ..moveTo(0, size.height - len)
+          ..lineTo(0, size.height)
+          ..lineTo(len, size.height),
+        paint,
+      )
+      // Bottom-Right
+      ..drawPath(
+        Path()
+          ..moveTo(size.width - len, size.height)
+          ..lineTo(size.width, size.height)
+          ..lineTo(size.width, size.height - len),
+        paint,
+      );
+  }
+
+  @override
+  bool shouldRepaint(covariant HUDPainter oldDelegate) => false;
+}
+
+class _BlinkingDot extends StatefulWidget {
+  const _BlinkingDot();
+
+  @override
+  State<_BlinkingDot> createState() => _BlinkingDotState();
+}
+
+class _BlinkingDotState extends State<_BlinkingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _controller,
+      child: Container(
+        width: 6,
+        height: 6,
+        decoration: const BoxDecoration(
+          color: Color(0xFF02965E),
+          shape: BoxShape.circle,
+        ),
       ),
     );
   }

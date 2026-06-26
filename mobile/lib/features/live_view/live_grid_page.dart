@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:app/core/video/decoder_pool.dart';
 import 'package:app/features/camera/bloc/camera_bloc.dart';
 import 'package:app/features/camera/bloc/camera_event.dart';
@@ -227,17 +228,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
 
     return GestureDetector(
       onTap: () => _selectSlot(index),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isSelected ? const Color(0xFF02965E) : const Color(0x00000000),
-            width: 2,
-          ),
-        ),
+      child: _PulsingSelectionBorder(
+        isSelected: isSelected,
         child: camera == null
             ? CustomPaint(
                 painter: _DashedBorderPainter(
-                  color: isSelected ? const Color(0xFF02965E) : const Color(0xFF70788C),
+                  color: isSelected
+                      ? const Color(0xFF02965E)
+                      : const Color(0xFF70788C),
                 ),
                 child: ColoredBox(
                   color: const Color(0xFF14161F),
@@ -247,14 +245,18 @@ class _LiveGridPageState extends State<LiveGridPage> {
                       children: [
                         Icon(
                           Icons.add_a_photo_outlined,
-                          color: isSelected ? const Color(0xFF02965E) : const Color(0xFF70788C),
+                          color: isSelected
+                              ? const Color(0xFF02965E)
+                              : const Color(0xFF70788C),
                           size: 28,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Slot ${index + 1}: Empty',
                           style: TextStyle(
-                            color: isSelected ? const Color(0xFFE2E8F0) : const Color(0xFF70788C),
+                            color: isSelected
+                                ? const Color(0xFFE2E8F0)
+                                : const Color(0xFF70788C),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -618,4 +620,94 @@ class _DashedBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _PulsingSelectionBorder extends StatefulWidget {
+  const _PulsingSelectionBorder({
+    required this.child,
+    required this.isSelected,
+  });
+
+  final Widget child;
+  final bool isSelected;
+
+  @override
+  State<_PulsingSelectionBorder> createState() => _PulsingSelectionBorderState();
+}
+
+class _PulsingSelectionBorderState extends State<_PulsingSelectionBorder>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    if (widget.isSelected && !Platform.environment.containsKey('FLUTTER_TEST')) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PulsingSelectionBorder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected != oldWidget.isSelected) {
+      if (widget.isSelected) {
+        if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+          _controller.repeat(reverse: true);
+        }
+      } else {
+        _controller
+          ..stop()
+          ..value = 0.0;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isSelected) {
+      return Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.transparent, width: 2),
+        ),
+        child: widget.child,
+      );
+    }
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final glowOpacity = 0.3 + (_controller.value * 0.4);
+        final borderThickness = 1.5 + (_controller.value * 1.0);
+
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: const Color(0xFF02965E).withValues(alpha: glowOpacity),
+              width: borderThickness,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF02965E).withValues(alpha: glowOpacity * 0.25),
+                blurRadius: 4.0 + (_controller.value * 6.0),
+                spreadRadius: 0.5 + (_controller.value * 1.0),
+              )
+            ],
+          ),
+          child: widget.child,
+        );
+      },
+      child: widget.child,
+    );
+  }
 }

@@ -23,7 +23,7 @@ void main() {
         eventClass: 'INTRUSION',
         confidence: 0.95,
         status: 'ACTIVE',
-        timestamp: DateTime(2026, 6, 25, 12, 0),
+        timestamp: DateTime(2026, 6, 25, 12),
       ),
     ];
 
@@ -102,7 +102,7 @@ void main() {
       build: () => alarmBloc,
       seed: () => AlarmLoaded(alarms: mockAlarms),
       act: (bloc) => bloc.add(
-        AlarmReceived(
+        const AlarmReceived(
           alarmData: <String, dynamic>{
             'alarmId': 'alarm-2',
             'siteId': 'site-1',

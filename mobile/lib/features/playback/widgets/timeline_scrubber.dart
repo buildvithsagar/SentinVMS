@@ -125,7 +125,6 @@ class _TimelinePainter extends CustomPainter {
   static const Color _trackColor = Color(0xFF2A2D35);
   static const Color _gridLineColor = Color(0xFF3A3D45);
   static const Color _labelColor = Color(0xFF9E9E9E);
-  static const Color _playheadColor = Color(0xFFE0E0E0);
 
   static const Color _continuousColor = Color(0xFF1565C0);
   static const Color _motionColor = Color(0xFFE65100);
@@ -296,15 +295,63 @@ class _TimelinePainter extends CustomPainter {
 
     final x = _timeToX(time, trackWidth);
 
+    final playheadRect = Rect.fromLTRB(
+      x - 2,
+      trackTop - 2,
+      x + 2,
+      trackTop + trackHeight + 2,
+    );
+
+    final neonShader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        const Color(0xFF00FFCC),
+        const Color(0xFF02965E),
+        const Color(0xFF02965E).withValues(alpha: 0.1),
+      ],
+    ).createShader(playheadRect);
+
+    // Draw a soft glowing aura behind the playhead line
+    final glowPaint = Paint()
+      ..shader = neonShader
+      ..strokeWidth = 4.5
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+
+    canvas.drawLine(
+      Offset(x, trackTop - 2),
+      Offset(x, trackTop + trackHeight + 2),
+      glowPaint,
+    );
+
+    // Precise core playhead line
     final linePaint = Paint()
-      ..color = _playheadColor
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFFE2E8F0),
+          Color(0xFF02965E),
+        ],
+      ).createShader(playheadRect)
       ..strokeWidth = 1.5;
 
-    // Vertical line from top of track to bottom.
     canvas.drawLine(
       Offset(x, trackTop - 2),
       Offset(x, trackTop + trackHeight + 2),
       linePaint,
+    );
+
+    // Glow behind the triangle indicator
+    final triangleGlow = Paint()
+      ..color = const Color(0xFF02965E).withValues(alpha: 0.3)
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+
+    canvas.drawCircle(
+      Offset(x, trackTop - _triangleSize - 2),
+      _triangleSize + 2,
+      triangleGlow,
     );
 
     // Small downward-pointing triangle at the top of the playhead.
@@ -315,7 +362,7 @@ class _TimelinePainter extends CustomPainter {
       ..close();
 
     final trianglePaint = Paint()
-      ..color = _playheadColor
+      ..color = const Color(0xFF02965E)
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(trianglePath, trianglePaint);
