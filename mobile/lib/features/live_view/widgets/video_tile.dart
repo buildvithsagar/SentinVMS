@@ -124,7 +124,7 @@ class _VideoTileState extends State<VideoTile> {
       SnackBar(
         content: Text('PTZ $action triggered (Phase 1 UI Stub)'),
         duration: const Duration(seconds: 1),
-        backgroundColor: const Color(0xFF02965E),
+        backgroundColor: const Color(0xFF2563EB),
       ),
     );
   }
@@ -138,12 +138,11 @@ class _VideoTileState extends State<VideoTile> {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0D0E12),
+        color: const Color(0xFF0F172A),
         border: Border.all(
           color: hasActiveVideo
-              ? const Color(0xFF02965E).withValues(alpha: 0.3)
-              : const Color(0x2670788C),
-          width: 0.8,
+              ? const Color(0xFF2563EB).withValues(alpha: 0.4)
+              : const Color(0x1FFFFFFF),
         ),
       ),
       child: ClipRRect(
@@ -155,62 +154,55 @@ class _VideoTileState extends State<VideoTile> {
               child: _buildVideoContent(),
             ),
 
-            // HUD Tactical Corner Brackets
-            if (hasActiveVideo)
-              const Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: HUDPainter(),
+            // Top-Left Camera Name Pill Badge
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  widget.camera.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
+            ),
 
-            // Top Bar Overlay (Camera Name + Live Telemetry)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                color: const Color(0xB30D0E12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        widget.camera.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFE2E8F0),
-                          fontSize: 11,
+            // Top-Right Live Status Pill Badge
+            if (hasActiveVideo)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _BlinkingDot(),
+                      SizedBox(width: 4),
+                      Text(
+                        'LIVE • 24 FPS',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
                         ),
                       ),
-                    ),
-                    if (hasActiveVideo)
-                      const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _BlinkingDot(),
-                          SizedBox(width: 6),
-                          Text(
-                            'LIVE • H.265 • 24 FPS • 2.8 Mbps',
-                            style: TextStyle(
-                              color: Color(0xFF02965E),
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
 
             // PTZ Stub Controls Overlay
             if (widget.camera.ptzCapable) _buildPtzOverlay(),
@@ -228,12 +220,12 @@ class _VideoTileState extends State<VideoTile> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 32),
+              const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 32),
               const SizedBox(height: 8),
               const Text(
                 'Stream Error',
                 style: TextStyle(
-                  color: Color(0xFFE2E8F0),
+                  color: Color(0xFF1E293B),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -260,12 +252,12 @@ class _VideoTileState extends State<VideoTile> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.pause_circle_outline, color: Color(0xFF70788C), size: 32),
+              const Icon(Icons.pause_circle_outline, color: Color(0xFF64748B), size: 32),
               const SizedBox(height: 8),
               const Text(
                 'Playback Paused',
                 style: TextStyle(
-                  color: Color(0xFFE2E8F0),
+                  color: Color(0xFF1E293B),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -274,7 +266,7 @@ class _VideoTileState extends State<VideoTile> {
               const Text(
                 'Paused to save decoder resources',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF70788C), fontSize: 10),
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 10),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -294,7 +286,7 @@ class _VideoTileState extends State<VideoTile> {
     if (_isLoading || _controller == null || !_controller!.value.isInitialized) {
       return const Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF02965E)),
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
         ),
       );
     }
@@ -317,81 +309,91 @@ class _VideoTileState extends State<VideoTile> {
           // Zoom In/Out
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xCC14161F),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: const Color(0x2670788C), width: 0.5),
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white24),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  iconSize: 16,
+                  iconSize: 18,
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  icon: const Icon(Icons.zoom_in, color: Color(0xFFE2E8F0)),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  icon: const Icon(Icons.zoom_in, color: Colors.white),
                   onPressed: () => _showPtzStubToast('Zoom In'),
                 ),
-                Container(width: 0.5, height: 16, color: const Color(0x2670788C)),
+                Container(width: 1, height: 16, color: Colors.white24),
                 IconButton(
-                  iconSize: 16,
+                  iconSize: 18,
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  icon: const Icon(Icons.zoom_out, color: Color(0xFFE2E8F0)),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  icon: const Icon(Icons.zoom_out, color: Colors.white),
                   onPressed: () => _showPtzStubToast('Zoom Out'),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           // Directional Pad
           Container(
-            width: 72,
-            height: 72,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xCC14161F),
+              color: Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0x2670788C), width: 0.5),
+              border: Border.all(color: Colors.white24),
             ),
             child: Stack(
               children: [
                 Align(
                   alignment: Alignment.topCenter,
                   child: IconButton(
-                    iconSize: 16,
+                    iconSize: 20,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-                    icon: const Icon(Icons.arrow_drop_up, color: Color(0xFFE2E8F0)),
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    icon: const Icon(Icons.arrow_drop_up, color: Colors.white),
                     onPressed: () => _showPtzStubToast('Pan Up'),
                   ),
                 ),
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: IconButton(
-                    iconSize: 16,
+                    iconSize: 20,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-                    icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFE2E8F0)),
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
                     onPressed: () => _showPtzStubToast('Pan Down'),
                   ),
                 ),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
-                    iconSize: 16,
+                    iconSize: 20,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-                    icon: const Icon(Icons.arrow_left, color: Color(0xFFE2E8F0)),
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    icon: const Icon(Icons.arrow_left, color: Colors.white),
                     onPressed: () => _showPtzStubToast('Tilt Left'),
                   ),
                 ),
                 Align(
                   alignment: Alignment.centerRight,
                   child: IconButton(
-                    iconSize: 16,
+                    iconSize: 20,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-                    icon: const Icon(Icons.arrow_right, color: Color(0xFFE2E8F0)),
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    icon: const Icon(Icons.arrow_right, color: Colors.white),
                     onPressed: () => _showPtzStubToast('Tilt Right'),
+                  ),
+                ),
+                Align(
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
               ],
@@ -403,56 +405,7 @@ class _VideoTileState extends State<VideoTile> {
   }
 }
 
-class HUDPainter extends CustomPainter {
-  const HUDPainter();
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF02965E).withValues(alpha: 0.4)
-      ..strokeWidth = 1.2
-      ..style = PaintingStyle.stroke;
-
-    const len = 12.0;
-
-    // Top-Left
-    canvas
-      ..drawPath(
-        Path()
-          ..moveTo(0, len)
-          ..lineTo(0, 0)
-          ..lineTo(len, 0),
-        paint,
-      )
-      // Top-Right
-      ..drawPath(
-        Path()
-          ..moveTo(size.width - len, 0)
-          ..lineTo(size.width, 0)
-          ..lineTo(size.width, len),
-        paint,
-      )
-      // Bottom-Left
-      ..drawPath(
-        Path()
-          ..moveTo(0, size.height - len)
-          ..lineTo(0, size.height)
-          ..lineTo(len, size.height),
-        paint,
-      )
-      // Bottom-Right
-      ..drawPath(
-        Path()
-          ..moveTo(size.width - len, size.height)
-          ..lineTo(size.width, size.height)
-          ..lineTo(size.width, size.height - len),
-        paint,
-      );
-  }
-
-  @override
-  bool shouldRepaint(covariant HUDPainter oldDelegate) => false;
-}
 
 class _BlinkingDot extends StatefulWidget {
   const _BlinkingDot();
@@ -491,7 +444,7 @@ class _BlinkingDotState extends State<_BlinkingDot>
         width: 6,
         height: 6,
         decoration: const BoxDecoration(
-          color: Color(0xFF02965E),
+          color: Color(0xFFEF4444),
           shape: BoxShape.circle,
         ),
       ),

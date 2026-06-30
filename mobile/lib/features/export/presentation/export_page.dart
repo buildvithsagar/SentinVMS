@@ -1,10 +1,17 @@
+import 'dart:async';
+
+import 'package:app/features/camera/data/camera_repository.dart';
+import 'package:app/features/camera/models/camera_model.dart';
+import 'package:app/features/export/data/export_repository.dart';
 import 'package:app/features/export/models/export_job_model.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-/// Export wizard page with two sections:
-/// 1. Create New Export – camera ID, time pickers, and submit button.
-/// 2. Export History – list of past/in-progress export jobs.
+/// Export wizard page that connects with real backends:
+/// 1. Create New Export – selects a real camera, configures time bounds, and starts a real export job.
+/// 2. Export History – displays real export history and polls processing jobs.
 class ExportPage extends StatefulWidget {
   const ExportPage({super.key});
 
@@ -14,54 +21,160 @@ class ExportPage extends StatefulWidget {
 
 class _ExportPageState extends State<ExportPage> {
   // ── Create export form state ──────────────────────────────────────────
-  final TextEditingController _cameraIdController = TextEditingController();
   DateTime _startTime = DateTime.now().subtract(const Duration(hours: 1));
   DateTime _endTime = DateTime.now();
 
-  // ── Mock export history ───────────────────────────────────────────────
-  late final List<ExportJob> _exportJobs;
+  List<Camera> _cameras = [];
+  Camera? _selectedCamera;
+
+  // ── Real export history state ─────────────────────────────────────────
+  List<ExportJob> _exportJobs = [];
+
+  bool _isLoadingCameras = false;
+  bool _isLoadingHistory = false;
+  bool _isCreatingJob = false;
+
+  String? _camerasError;
+  String? _historyError;
+
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
-    _exportJobs = [
-      ExportJob(
-        id: 'exp-a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        cameraId: 'cam-front-gate',
-        siteId: 'site-001',
-        startTime: DateTime.now().subtract(const Duration(hours: 6)),
-        endTime: DateTime.now().subtract(const Duration(hours: 5)),
-        status: 'COMPLETED',
-        downloadUrl: 'https://cdn.vms.io/exports/exp-a1b2.mp4',
-        progress: 1,
-        createdAt: DateTime.now().subtract(const Duration(hours: 4)),
-      ),
-      ExportJob(
-        id: 'exp-b2c3d4e5-f6a7-8901-bcde-f12345678901',
-        cameraId: 'cam-parking-b',
-        siteId: 'site-001',
-        startTime: DateTime.now().subtract(const Duration(hours: 3)),
-        endTime: DateTime.now().subtract(const Duration(hours: 2)),
-        status: 'PROCESSING',
-        progress: 0.65,
-        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-      ),
-      ExportJob(
-        id: 'exp-c3d4e5f6-a7b8-9012-cdef-123456789012',
-        cameraId: 'cam-warehouse',
-        siteId: 'site-001',
-        startTime: DateTime.now().subtract(const Duration(hours: 2)),
-        endTime: DateTime.now().subtract(const Duration(hours: 1)),
-        status: 'FAILED',
-        createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
-      ),
-    ];
+    _loadCameras();
+    _loadHistory();
   }
 
   @override
   void dispose() {
-    _cameraIdController.dispose();
+    _stopStatusPolling();
     super.dispose();
+  }
+
+  // ── Data Fetching ─────────────────────────────────────────────────────
+
+  Future<void> _loadCameras() async {
+    setState(() {
+      _isLoadingCameras = true;
+      _camerasError = null;
+    });
+    try {
+      final cameras = await GetIt.instance<CameraRepository>().getCameras();
+      setState(() {
+        _cameras = cameras;
+        _isLoadingCameras = false;
+        if (cameras.isNotEmpty) {
+          _selectedCamera = cameras.first;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _camerasError = e.toString();
+        _isLoadingCameras = false;
+      });
+    }
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() {
+      _isLoadingHistory = true;
+      _historyError = null;
+    });
+    try {
+      final jobs = await GetIt.instance<ExportRepository>().getExports();
+      setState(() {
+        _exportJobs = jobs;
+        _isLoadingHistory = false;
+      });
+
+      // Start polling if there are any processing jobs
+      final hasProcessing = jobs.any((job) => job.status == 'PROCESSING');
+      if (hasProcessing) {
+        _startStatusPolling();
+      } else {
+        _stopStatusPolling();
+      }
+    } catch (e) {
+      setState(() {
+        _historyError = e.toString();
+        _isLoadingHistory = false;
+      });
+    }
+  }
+
+  Future<void> _startExport() async {
+    if (_selectedCamera == null) return;
+    setState(() {
+      _isCreatingJob = true;
+    });
+    try {
+      await GetIt.instance<ExportRepository>().createExportJob(
+        siteId: _selectedCamera!.siteId,
+        cameraId: _selectedCamera!.id,
+        startTime: _startTime,
+        endTime: _endTime,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Export initiated successfully'),
+          backgroundColor: const Color(0xFF2563EB),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+
+      // Reload history to show new job
+      await _loadHistory();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to start export: $e'),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreatingJob = false;
+        });
+      }
+    }
+  }
+
+  // ── Polling logic ─────────────────────────────────────────────────────
+
+  void _startStatusPolling() {
+    if (_pollingTimer != null && _pollingTimer!.isActive) return;
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      try {
+        final jobs = await GetIt.instance<ExportRepository>().getExports();
+        if (!mounted) return;
+        setState(() {
+          _exportJobs = jobs;
+        });
+        final hasProcessing = jobs.any((job) => job.status == 'PROCESSING');
+        if (!hasProcessing) {
+          _stopStatusPolling();
+        }
+      } catch (_) {
+        // Silently ignore polling errors to avoid visual spam
+      }
+    });
+  }
+
+  void _stopStatusPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
   }
 
   // ── Date-time picker ──────────────────────────────────────────────────
@@ -108,8 +221,8 @@ class _ExportPageState extends State<ExportPage> {
     return Theme(
       data: Theme.of(context).copyWith(
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF02965E),
-          surface: Color(0xFF2A2D35),
+          primary: Color(0xFF2DD4BF),
+          surface: Color(0xFF1E293B),
         ),
       ),
       child: child ?? const SizedBox.shrink(),
@@ -121,49 +234,64 @@ class _ExportPageState extends State<ExportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1D23),
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2A2D35),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8)),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/live_grid');
+            }
+          },
+        ),
         title: const Text(
           'Export',
           style: TextStyle(
-            color: Color(0xFFE0E0E0),
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
-        iconTheme: const IconThemeData(color: Color(0xFFE0E0E0)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ═══ Section 1: Create New Export ════════════════════════
-            _buildSectionHeader('Create New Export'),
-            const SizedBox(height: 12),
-            _buildCreateExportForm(),
+      body: RefreshIndicator(
+        color: const Color(0xFF2563EB),
+        onRefresh: () async {
+          await _loadCameras();
+          await _loadHistory();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ═══ Section 1: Create New Export ════════════════════════
+              _buildSectionHeader('Create New Export'),
+              const SizedBox(height: 12),
+              _buildCreateExportForm(),
 
-            const SizedBox(height: 32),
+              const SizedBox(height: 32),
 
-            // ═══ Section 2: Export History ═══════════════════════════
-            _buildSectionHeader('Export History'),
-            const SizedBox(height: 12),
-            ..._exportJobs.map(_buildExportJobCard),
-          ],
+              // ═══ Section 2: Export History ═══════════════════════════
+              _buildSectionHeader('Export History'),
+              const SizedBox(height: 12),
+              _buildExportHistoryContent(),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ── Section header ────────────────────────────────────────────────────
-
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
       style: const TextStyle(
-        color: Color(0xFFE0E0E0),
+        color: Colors.white,
         fontWeight: FontWeight.bold,
         fontSize: 18,
       ),
@@ -178,43 +306,68 @@ class _ExportPageState extends State<ExportPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2D35),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Camera ID field
-          TextField(
-            controller: _cameraIdController,
-            style: const TextStyle(color: Color(0xFFE0E0E0)),
-            decoration: InputDecoration(
-              labelText: 'Camera ID',
-              labelStyle: const TextStyle(color: Color(0xFF9E9E9E)),
-              hintText: 'e.g. cam-front-gate',
-              hintStyle: TextStyle(
-                color: const Color(0xFF9E9E9E).withValues(alpha: 0.5),
+          // Camera picker dropdown
+          if (_isLoadingCameras)
+            const Center(child: Padding(
+              padding: EdgeInsets.all(8),
+              child: CircularProgressIndicator(),
+            ))
+          else if (_camerasError != null)
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  Text('Failed to load cameras: $_camerasError', style: const TextStyle(color: Color(0xFFEF4444))),
+                  ElevatedButton(onPressed: _loadCameras, child: const Text('Retry')),
+                ],
               ),
-              prefixIcon: const Icon(
-                Icons.videocam_outlined,
-                color: Color(0xFF9E9E9E),
-              ),
-              filled: true,
-              fillColor: const Color(0xFF1A1D23),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF3A3D45)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF3A3D45)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF02965E)),
-              ),
+            )
+          else if (_cameras.isNotEmpty)
+            DropdownButtonFormField<Camera>(
+               initialValue: _selectedCamera,
+               decoration: InputDecoration(
+                 labelText: 'Select Camera',
+                 labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                 filled: true,
+                 fillColor: Colors.white.withValues(alpha: 0.05),
+                 border: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(8),
+                   borderSide: const BorderSide(color: Colors.white12),
+                 ),
+                 enabledBorder: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(8),
+                   borderSide: const BorderSide(color: Colors.white12),
+                 ),
+                 focusedBorder: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(8),
+                   borderSide: const BorderSide(color: Color(0xFF2563EB)),
+                 ),
+               ),
+               dropdownColor: const Color(0xFF1E293B),
+              items: _cameras.map((camera) {
+                return DropdownMenuItem<Camera>(
+                  value: camera,
+                  child: Text(
+                    camera.name,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                );
+              }).toList(),
+              onChanged: (camera) {
+                setState(() {
+                  _selectedCamera = camera;
+                });
+              },
             ),
-          ),
 
           const SizedBox(height: 16),
 
@@ -241,33 +394,28 @@ class _ExportPageState extends State<ExportPage> {
             height: 48,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF02965E),
+                backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 elevation: 0,
               ),
-              icon: const Icon(Icons.file_download, size: 20),
-              label: const Text(
-                'Start Export',
-                style: TextStyle(
+              icon: _isCreatingJob
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                    )
+                  : const Icon(Icons.file_download, size: 20),
+              label: Text(
+                _isCreatingJob ? 'Requesting Export...' : 'Start Export',
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),
               ),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Export initiated'),
-                    backgroundColor: const Color(0xFF02965E),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
-              },
+              onPressed: _isCreatingJob || _selectedCamera == null ? null : _startExport,
             ),
           ),
         ],
@@ -286,15 +434,15 @@ class _ExportPageState extends State<ExportPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1D23),
+          color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFF3A3D45)),
+          border: Border.all(color: Colors.white12),
         ),
         child: Row(
           children: [
             const Icon(
               Icons.schedule,
-              color: Color(0xFF9E9E9E),
+              color: Color(0xFF94A3B8),
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -305,7 +453,7 @@ class _ExportPageState extends State<ExportPage> {
                   Text(
                     label,
                     style: const TextStyle(
-                      color: Color(0xFF9E9E9E),
+                      color: Color(0xFF94A3B8),
                       fontSize: 11,
                     ),
                   ),
@@ -313,7 +461,7 @@ class _ExportPageState extends State<ExportPage> {
                   Text(
                     value,
                     style: const TextStyle(
-                      color: Color(0xFFE0E0E0),
+                      color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -323,7 +471,7 @@ class _ExportPageState extends State<ExportPage> {
             ),
             const Icon(
               Icons.edit_calendar,
-              color: Color(0xFF9E9E9E),
+              color: Color(0xFF64748B),
               size: 18,
             ),
           ],
@@ -332,7 +480,57 @@ class _ExportPageState extends State<ExportPage> {
     );
   }
 
-  // ── Export job card ────────────────────────────────────────────────────
+  // ── Export history content ────────────────────────────────────────────
+
+  Widget _buildExportHistoryContent() {
+    if (_isLoadingHistory && _exportJobs.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+          ),
+        ),
+      );
+    }
+
+    if (_historyError != null && _exportJobs.isEmpty) {
+      return Column(
+        children: [
+          Text('Failed to load export history: $_historyError', style: const TextStyle(color: Color(0xFFEF4444))),
+          const SizedBox(height: 8),
+          ElevatedButton(onPressed: _loadHistory, child: const Text('Retry')),
+        ],
+      );
+    }
+
+    if (_exportJobs.isEmpty) {
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: const Column(
+            children: [
+              Icon(Icons.folder_open, size: 48, color: Color(0xFF94A3B8)),
+              SizedBox(height: 12),
+              Text(
+                'No exports requested yet',
+                style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: _exportJobs.map(_buildExportJobCard).toList(),
+    );
+  }
 
   Widget _buildExportJobCard(ExportJob job) {
     final statusColor = _statusColor(job.status);
@@ -343,8 +541,11 @@ class _ExportPageState extends State<ExportPage> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2D35),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,14 +558,14 @@ class _ExportPageState extends State<ExportPage> {
                 children: [
                   const Icon(
                     Icons.insert_drive_file_outlined,
-                    color: Color(0xFF9E9E9E),
+                    color: Color(0xFF94A3B8),
                     size: 16,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     truncatedId,
                     style: const TextStyle(
-                      color: Color(0xFFE0E0E0),
+                      color: Colors.white,
                       fontWeight: FontWeight.w500,
                       fontSize: 13,
                       fontFamily: 'monospace',
@@ -400,16 +601,16 @@ class _ExportPageState extends State<ExportPage> {
           Text(
             'Camera: ${job.cameraId}',
             style: const TextStyle(
-              color: Color(0xFF9E9E9E),
+              color: Color(0xFF94A3B8),
               fontSize: 12,
             ),
           ),
           const SizedBox(height: 2),
           Text(
-            '${DateFormat('HH:mm').format(job.startTime)}'
-            ' – ${DateFormat('HH:mm').format(job.endTime)}',
+            '${DateFormat('dd MMM HH:mm').format(job.startTime)}'
+            ' – ${DateFormat('dd MMM HH:mm').format(job.endTime)}',
             style: const TextStyle(
-              color: Color(0xFF9E9E9E),
+              color: Color(0xFF94A3B8),
               fontSize: 12,
             ),
           ),
@@ -424,7 +625,7 @@ class _ExportPageState extends State<ExportPage> {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: job.progress,
-                      backgroundColor: const Color(0xFF1A1D23),
+                      backgroundColor: Colors.white12,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         statusColor,
                       ),
@@ -446,13 +647,13 @@ class _ExportPageState extends State<ExportPage> {
           ],
 
           // Download button for COMPLETED
-          if (job.isCompleted) ...[
+          if (job.isCompleted && job.downloadUrl != null) ...[
             const SizedBox(height: 10),
             SizedBox(
               height: 34,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF02965E),
+                  backgroundColor: const Color(0xFF2563EB),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
@@ -462,14 +663,14 @@ class _ExportPageState extends State<ExportPage> {
                 ),
                 icon: const Icon(Icons.download, size: 16),
                 label: const Text(
-                  'Download',
+                  'Download Clip',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Downloading ${job.id}'),
-                      backgroundColor: const Color(0xFF02965E),
+                      content: Text('Downloading clip: ${job.downloadUrl}'),
+                      backgroundColor: const Color(0xFF2563EB),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -488,14 +689,14 @@ class _ExportPageState extends State<ExportPage> {
   Color _statusColor(String status) {
     switch (status) {
       case 'COMPLETED':
-        return const Color(0xFF02965E);
+        return const Color(0xFF10B981);
       case 'PROCESSING':
-        return const Color(0xFFFF9800);
+        return const Color(0xFFF59E0B);
       case 'FAILED':
-        return const Color(0xFFD32F2F);
+        return const Color(0xFFEF4444);
       case 'PENDING':
       default:
-        return const Color(0xFF9E9E9E);
+        return const Color(0xFF64748B);
     }
   }
 }

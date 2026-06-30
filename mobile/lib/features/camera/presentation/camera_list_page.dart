@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:app/core/auth/auth_bloc.dart';
 import 'package:app/core/auth/auth_event.dart';
 import 'package:app/core/auth/auth_state.dart';
@@ -55,9 +57,9 @@ class _CameraListPageState extends State<CameraListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0E12),
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF14161F),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         title: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, authState) {
@@ -67,7 +69,7 @@ class _CameraListPageState extends State<CameraListPage> {
             return Text(
               'VMS $tenantName',
               style: const TextStyle(
-                color: Color(0xFFE2E8F0),
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -76,7 +78,7 @@ class _CameraListPageState extends State<CameraListPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFF70788C)),
+            icon: const Icon(Icons.logout, color: Color(0xFF94A3B8)),
             tooltip: 'Logout',
             onPressed: _handleLogout,
           ),
@@ -89,28 +91,31 @@ class _CameraListPageState extends State<CameraListPage> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Search cameras by name or IP...',
-                hintStyle: const TextStyle(color: Color(0xFF70788C)),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF70788C)),
+                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                prefixIcon: const Icon(Icons.search, color: Color(0xFF94A3B8)),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Color(0xFF70788C)),
+                        icon: const Icon(Icons.clear, color: Color(0xFF94A3B8)),
                         onPressed: _searchController.clear,
                       )
                     : null,
                 filled: true,
-                fillColor: const Color(0xFF14161F),
+                fillColor: Colors.white.withValues(alpha: 0.05),
                 contentPadding: EdgeInsets.zero,
-                border: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF70788C), width: 0.5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.white12),
                 ),
-                enabledBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF70788C), width: 0.5),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.white12),
                 ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF02965E)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
                 ),
               ),
             ),
@@ -123,7 +128,7 @@ class _CameraListPageState extends State<CameraListPage> {
                 if (state is CameraLoading) {
                   return const Center(
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF02965E)),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
                     ),
                   );
                 }
@@ -137,24 +142,28 @@ class _CameraListPageState extends State<CameraListPage> {
                         children: [
                           const Icon(
                             Icons.error_outline,
-                            color: Color(0xFFD32F2F),
+                            color: Color(0xFFEF4444),
                             size: 48,
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Failed to load cameras',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: const Color(0xFFE2E8F0),
+                                  color: Colors.white,
                                 ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             state.message,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Color(0xFF70788C)),
+                            style: const TextStyle(color: Color(0xFF64748B)),
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                            ),
                             onPressed: () {
                               context.read<CameraBloc>().add(const FetchCameras());
                             },
@@ -179,7 +188,7 @@ class _CameraListPageState extends State<CameraListPage> {
                         _searchQuery.isNotEmpty
                             ? 'No cameras matching search query'
                             : 'No cameras registered for this tenant',
-                        style: const TextStyle(color: Color(0xFF70788C)),
+                        style: const TextStyle(color: Color(0xFF64748B)),
                       ),
                     );
                   }
@@ -193,8 +202,8 @@ class _CameraListPageState extends State<CameraListPage> {
                   final siteIds = grouped.keys.toList()..sort();
 
                   return RefreshIndicator(
-                    color: const Color(0xFF02965E),
-                    backgroundColor: const Color(0xFF14161F),
+                    color: const Color(0xFF2DD4BF),
+                    backgroundColor: const Color(0xFF1E293B),
                     onRefresh: () async {
                       context.read<CameraBloc>().add(const FetchCameras());
                     },
@@ -218,11 +227,11 @@ class _CameraListPageState extends State<CameraListPage> {
                                 horizontal: 16,
                                 vertical: 10,
                               ),
-                              color: const Color(0x8014161F),
+                              color: Colors.white.withValues(alpha: 0.05),
                               child: Text(
                                 'SITE ID: $displaySiteId',
                                 style: const TextStyle(
-                                  color: Color(0xFF70788C),
+                                  color: Color(0xFF94A3B8),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                   letterSpacing: 1,
@@ -239,76 +248,78 @@ class _CameraListPageState extends State<CameraListPage> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF14161F),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: const Color(0x2670788C),
-                                    width: 0.5,
+                                    color: Colors.white.withValues(alpha: 0.12),
                                   ),
                                 ),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0D0E12),
-                                      borderRadius: BorderRadius.circular(4),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
                                     ),
-                                    child: Icon(
-                                      camera.ptzCapable
-                                          ? Icons.settings_backup_restore
-                                          : Icons.videocam,
-                                      color: const Color(0xFF70788C),
+                                    leading: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        camera.ptzCapable
+                                            ? Icons.settings_backup_restore
+                                            : Icons.videocam,
+                                        color: const Color(0xFF94A3B8),
+                                      ),
                                     ),
-                                  ),
-                                  title: Text(
-                                    camera.name,
-                                    style: const TextStyle(
-                                      color: Color(0xFFE2E8F0),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      'IP: ${camera.ipAddress} • Profile ${camera.onvifProfile} • ${camera.codec}',
+                                    title: Text(
+                                      camera.name,
                                       style: const TextStyle(
-                                        color: Color(0xFF70788C),
-                                        fontSize: 12,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // Status Dot
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: isOnline
-                                              ? const Color(0xFF02965E)
-                                              : const Color(0xFFD32F2F),
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        'IP: ${camera.ipAddress} • Profile ${camera.onvifProfile} • ${camera.codec}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF94A3B8),
+                                          fontSize: 12,
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      // Status Text
-                                      Text(
-                                        isOnline ? 'ONLINE' : 'OFFLINE',
-                                        style: TextStyle(
-                                          color: isOnline
-                                              ? const Color(0xFF02965E)
-                                              : const Color(0xFFD32F2F),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 10,
-                                          letterSpacing: 0.5,
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Status Dot
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: isOnline
+                                                ? const Color(0xFF10B981)
+                                                : const Color(0xFFEF4444),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 8),
+                                        // Status Text
+                                        Text(
+                                          isOnline ? 'ONLINE' : 'OFFLINE',
+                                          style: TextStyle(
+                                            color: isOnline
+                                                ? const Color(0xFF10B981)
+                                                : const Color(0xFFEF4444),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 10,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
@@ -327,47 +338,68 @@ class _CameraListPageState extends State<CameraListPage> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        backgroundColor: const Color(0xFF14161F),
-        selectedItemColor: const Color(0xFF02965E),
-        unselectedItemColor: const Color(0xFF70788C),
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == 0) {
-            context.go('/live_grid');
-          } else if (index == 1) {
-            // Already here
-          } else if (index == 2) {
-            context.go('/playback');
-          } else if (index == 3) {
-            context.go('/alarms');
-          } else if (index == 4) {
-            context.go('/exports');
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: 'Live Grid',
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
+                ),
+                child: BottomNavigationBar(
+                  currentIndex: 1,
+                  backgroundColor: Colors.transparent,
+                  selectedItemColor: const Color(0xFF2563EB),
+                  unselectedItemColor: const Color(0xFF94A3B8),
+                  elevation: 0,
+                  type: BottomNavigationBarType.fixed,
+                  onTap: (index) {
+                    if (index == 0) {
+                      context.go('/live_grid');
+                    } else if (index == 1) {
+                      // Already here
+                    } else if (index == 2) {
+                      context.push('/playback');
+                    } else if (index == 3) {
+                      context.push('/alarms');
+                    } else if (index == 4) {
+                      context.push('/exports');
+                    }
+                  },
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.grid_view),
+                      label: 'Live Grid',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.list),
+                      label: 'Cameras',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.history),
+                      label: 'Playback',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.notifications),
+                      label: 'Alarms',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.download),
+                      label: 'Exports',
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'Cameras',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Playback',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Alarms',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.download),
-            label: 'Exports',
-          ),
-        ],
+        ),
       ),
     );
   }

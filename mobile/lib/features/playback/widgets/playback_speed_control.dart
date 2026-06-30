@@ -21,10 +21,10 @@ class PlaybackSpeedControl extends StatelessWidget {
 
   // ─── Palette ──────────────────────────────────────────────────────────
 
-  static const Color _selectedBg = Color(0xFF02965E);
-  static const Color _unselectedBg = Color(0xFF2A2D35);
+  static const Color _selectedBg = Color(0xFF2563EB);
+  static const Color _unselectedBg = Colors.white12;
   static const Color _selectedText = Color(0xFFFFFFFF);
-  static const Color _unselectedText = Color(0xFF9E9E9E);
+  static const Color _unselectedText = Color(0xFF94A3B8);
 
   // ─── Helpers ──────────────────────────────────────────────────────────
 

@@ -4,6 +4,7 @@ import 'package:app/features/alarms/bloc/alarm_state.dart';
 import 'package:app/features/alarms/models/alarm_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 /// Alarm list page that displays AI-triggered alarm events with
@@ -14,19 +15,29 @@ class AlarmListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1D23),
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2A2D35),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8)),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/live_grid');
+            }
+          },
+        ),
         title: const Text(
           'Alarms',
           style: TextStyle(
-            color: Color(0xFFE0E0E0),
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
-        iconTheme: const IconThemeData(color: Color(0xFFE0E0E0)),
+        iconTheme: const IconThemeData(color: Color(0xFF94A3B8)),
       ),
       body: BlocBuilder<AlarmBloc, AlarmState>(
         builder: (context, state) {
@@ -34,7 +45,7 @@ class AlarmListPage extends StatelessWidget {
             return const Center(
               child: CircularProgressIndicator(
                 valueColor:
-                    AlwaysStoppedAnimation<Color>(Color(0xFF02965E)),
+                    AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
               ),
             );
           }
@@ -48,7 +59,7 @@ class AlarmListPage extends StatelessWidget {
                   children: [
                     const Icon(
                       Icons.error_outline,
-                      color: Color(0xFFD32F2F),
+                      color: Color(0xFFEF4444),
                       size: 48,
                     ),
                     const SizedBox(height: 16),
@@ -56,19 +67,19 @@ class AlarmListPage extends StatelessWidget {
                       'Failed to load alarms',
                       style:
                           Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: const Color(0xFFE0E0E0),
+                                color: Colors.white,
                               ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       state.message,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Color(0xFF9E9E9E)),
+                      style: const TextStyle(color: Color(0xFF64748B)),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF02965E),
+                        backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () {
@@ -94,7 +105,7 @@ class AlarmListPage extends StatelessWidget {
                   children: [
                     const Icon(
                       Icons.notifications_off_outlined,
-                      color: Color(0xFF9E9E9E),
+                      color: Color(0xFF94A3B8),
                       size: 56,
                     ),
                     const SizedBox(height: 16),
@@ -102,7 +113,7 @@ class AlarmListPage extends StatelessWidget {
                       'No alarms',
                       style:
                           Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: const Color(0xFF9E9E9E),
+                                color: const Color(0xFF94A3B8),
                               ),
                     ),
                   ],
@@ -156,18 +167,21 @@ class _AlarmCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isActive = alarm.isActive;
     final statusColor =
-        isActive ? const Color(0xFFD32F2F) : const Color(0xFF02965E);
+        isActive ? const Color(0xFFEF4444) : const Color(0xFF10B981);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2D35),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
         border: Border(
           left: BorderSide(
             color: statusColor,
             width: 3,
           ),
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          right: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
         ),
       ),
       child: ListTile(
@@ -190,7 +204,7 @@ class _AlarmCard extends StatelessWidget {
         title: Text(
           alarm.eventClass,
           style: const TextStyle(
-            color: Color(0xFFE0E0E0),
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 15,
             letterSpacing: 0.5,
@@ -202,7 +216,7 @@ class _AlarmCard extends StatelessWidget {
             '${alarm.cameraName} • '
             '${DateFormat('dd MMM yyyy, HH:mm').format(alarm.timestamp)}',
             style: const TextStyle(
-              color: Color(0xFF9E9E9E),
+              color: Color(0xFF94A3B8),
               fontSize: 12,
             ),
           ),
@@ -210,7 +224,7 @@ class _AlarmCard extends StatelessWidget {
         trailing: isActive
             ? TextButton(
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF02965E),
+                  foregroundColor: const Color(0xFF2563EB),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 4,
@@ -219,7 +233,7 @@ class _AlarmCard extends StatelessWidget {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4),
-                    side: const BorderSide(color: Color(0xFF02965E)),
+                    side: const BorderSide(color: Color(0xFF2563EB)),
                   ),
                 ),
                 onPressed: () {
@@ -238,7 +252,7 @@ class _AlarmCard extends StatelessWidget {
               )
             : Icon(
                 Icons.check_circle,
-                color: const Color(0xFF02965E).withValues(alpha: 0.7),
+                color: const Color(0xFF10B981).withValues(alpha: 0.7),
                 size: 20,
               ),
       ),

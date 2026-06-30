@@ -46,19 +46,25 @@ void main() {
 
     testWidgets('renders all input fields and submit button',
         (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pump();
 
       expect(find.byType(TextFormField), findsNWidgets(4));
       expect(find.text('ORGANIZATION ID'), findsOneWidget);
-      expect(find.text('EMAIL ADDRESS'), findsOneWidget);
-      expect(find.text('PASSWORD'), findsOneWidget);
-      expect(find.text('TOTP CODE (2FA)'), findsOneWidget);
+      expect(find.text('OPERATOR EMAIL'), findsOneWidget);
+      expect(find.text('SECURITY PASSCODE'), findsOneWidget);
+      expect(find.text('MFA TOTP VERIFICATION CODE'), findsOneWidget);
       expect(find.text('AUTHENTICATE SESSION'), findsOneWidget);
     });
 
     testWidgets('shows validation errors when fields are empty and submitted',
         (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pump();
 
@@ -67,11 +73,14 @@ void main() {
 
       expect(find.text('Organization ID is required'), findsOneWidget);
       expect(find.text('Email address is required'), findsOneWidget);
-      expect(find.text('Password is required'), findsOneWidget);
+      expect(find.text('Security Passcode is required'), findsOneWidget);
     });
 
     testWidgets('shows validation error for invalid email format',
         (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pump();
 

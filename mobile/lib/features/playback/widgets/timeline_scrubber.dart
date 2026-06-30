@@ -121,14 +121,14 @@ class _TimelinePainter extends CustomPainter {
 
   // ─── Palette ──────────────────────────────────────────────────────────
 
-  static const Color _bgColor = Color(0xFF1A1D23);
-  static const Color _trackColor = Color(0xFF2A2D35);
-  static const Color _gridLineColor = Color(0xFF3A3D45);
-  static const Color _labelColor = Color(0xFF9E9E9E);
+  static const Color _bgColor = Colors.transparent;
+  static const Color _trackColor = Color(0x1F000000);
+  static const Color _gridLineColor = Colors.white10;
+  static const Color _labelColor = Color(0xFF94A3B8);
 
-  static const Color _continuousColor = Color(0xFF1565C0);
-  static const Color _motionColor = Color(0xFFE65100);
-  static const Color _scheduledColor = Color(0xFF02965E);
+  static const Color _continuousColor = Color(0xFF3B82F6);
+  static const Color _motionColor = Color(0xFFF59E0B);
+  static const Color _scheduledColor = Color(0xFF10B981);
 
   // ─── Layout constants ─────────────────────────────────────────────────
 
@@ -302,19 +302,19 @@ class _TimelinePainter extends CustomPainter {
       trackTop + trackHeight + 2,
     );
 
-    final neonShader = LinearGradient(
+    final blueShader = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        const Color(0xFF00FFCC),
-        const Color(0xFF02965E),
-        const Color(0xFF02965E).withValues(alpha: 0.1),
+        const Color(0xFF60A5FA),
+        const Color(0xFF2563EB),
+        const Color(0xFF2563EB).withValues(alpha: 0.1),
       ],
     ).createShader(playheadRect);
 
     // Draw a soft glowing aura behind the playhead line
     final glowPaint = Paint()
-      ..shader = neonShader
+      ..shader = blueShader
       ..strokeWidth = 4.5
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
 
@@ -330,8 +330,8 @@ class _TimelinePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color(0xFFE2E8F0),
-          Color(0xFF02965E),
+          Color(0xFF60A5FA),
+          Color(0xFF2563EB),
         ],
       ).createShader(playheadRect)
       ..strokeWidth = 1.5;
@@ -344,7 +344,7 @@ class _TimelinePainter extends CustomPainter {
 
     // Glow behind the triangle indicator
     final triangleGlow = Paint()
-      ..color = const Color(0xFF02965E).withValues(alpha: 0.3)
+      ..color = const Color(0xFF2563EB).withValues(alpha: 0.2)
       ..style = PaintingStyle.fill
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
 
@@ -362,7 +362,7 @@ class _TimelinePainter extends CustomPainter {
       ..close();
 
     final trianglePaint = Paint()
-      ..color = const Color(0xFF02965E)
+      ..color = const Color(0xFF2563EB)
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(trianglePath, trianglePaint);

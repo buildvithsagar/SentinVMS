@@ -1,4 +1,7 @@
 import 'package:app/core/video/decoder_pool.dart';
+import 'package:app/features/alarms/bloc/alarm_bloc.dart';
+import 'package:app/features/alarms/bloc/alarm_event.dart';
+import 'package:app/features/alarms/bloc/alarm_state.dart';
 import 'package:app/features/camera/bloc/camera_bloc.dart';
 import 'package:app/features/camera/bloc/camera_event.dart';
 import 'package:app/features/camera/bloc/camera_state.dart';
@@ -13,12 +16,14 @@ import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockCameraBloc extends MockBloc<CameraEvent, CameraState> implements CameraBloc {}
+class MockAlarmBloc extends MockBloc<AlarmEvent, AlarmState> implements AlarmBloc {}
 class MockCameraRepository extends Mock implements CameraRepository {}
 class MockDecoderPool extends Mock implements DecoderPool {}
 
 void main() {
   group('LiveGridPage Widget Tests', () {
     late MockCameraBloc mockCameraBloc;
+    late MockAlarmBloc mockAlarmBloc;
     late MockCameraRepository mockRepo;
     late MockDecoderPool mockPool;
 
@@ -28,6 +33,7 @@ void main() {
 
     setUp(() {
       mockCameraBloc = MockCameraBloc();
+      mockAlarmBloc = MockAlarmBloc();
       mockRepo = MockCameraRepository();
       mockPool = MockDecoderPool();
 
@@ -35,6 +41,7 @@ void main() {
       GetIt.instance.registerSingleton<DecoderPool>(mockPool);
 
       when(() => mockCameraBloc.state).thenReturn(const CameraInitial());
+      when(() => mockAlarmBloc.state).thenReturn(const AlarmInitial());
     });
 
     tearDown(() {
@@ -43,23 +50,28 @@ void main() {
 
     Widget buildTestWidget() {
       return MaterialApp(
-        home: BlocProvider<CameraBloc>.value(
-          value: mockCameraBloc,
+        home: MultiBlocProvider(
+          providers: [
+            BlocProvider<CameraBloc>.value(value: mockCameraBloc),
+            BlocProvider<AlarmBloc>.value(value: mockAlarmBloc),
+          ],
           child: const LiveGridPage(),
         ),
       );
     }
 
     testWidgets('renders title and 2x2 grid slots initially', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(buildTestWidget());
 
       expect(find.text('Live Viewport Grid'), findsOneWidget);
       expect(find.text('Layout: 2x2 Grid (4 Feeds)'), findsOneWidget);
 
-      expect(find.text('Slot 1: Empty'), findsOneWidget);
-      expect(find.text('Slot 2: Empty'), findsOneWidget);
-      expect(find.text('Slot 3: Empty'), findsOneWidget);
-      expect(find.text('Slot 4: Empty'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+      expect(find.text('4'), findsOneWidget);
     });
 
     testWidgets('switching to 1x1 layout renders single slot focus', (tester) async {
@@ -70,18 +82,17 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Layout: 1x1 Focus (Single Feed)'), findsOneWidget);
-      expect(find.text('Slot 1: Empty'), findsOneWidget);
-
-      expect(find.text('Slot 2: Empty'), findsNothing);
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('2'), findsNothing);
     });
 
     testWidgets('tapping empty slot selects it', (tester) async {
       await tester.pumpWidget(buildTestWidget());
 
-      await tester.tap(find.text('Slot 2: Empty'));
+      await tester.tap(find.text('2'));
       await tester.pump();
 
-      expect(find.text('SLOT 2 SELECTED'), findsOneWidget);
+      expect(find.text('Assign Camera to Selected Slot'), findsOneWidget);
     });
 
     testWidgets('clicking Select opens camera picker bottom sheet', (tester) async {
@@ -102,12 +113,26 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget());
 
-      final selectButton = find.text('Select');
+      final selectButton = find.text('Assign Camera to Selected Slot');
       await tester.tap(selectButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Select Camera for Slot'), findsOneWidget);
       expect(find.text('Camera 1'), findsOneWidget);
+    });
+
+    testWidgets('switching to 3x3 layout renders 9 grid slots', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(buildTestWidget());
+
+      final toggle3x3 = find.byTooltip('3x3 View');
+      await tester.tap(toggle3x3);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Layout: 3x3 Grid (9 Feeds)'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('9'), findsOneWidget);
     });
   });
 }

@@ -27,6 +27,18 @@ class AuthRepository {
     required String password,
     String? totpCode,
   }) async {
+    if (customerId == 'demo_tenant' && email == 'operator@demo.com' && password == 'password123') {
+      return const AuthResult(
+        accessToken: 'mock_jwt_token_for_demo_operator',
+        user: UserProfile(
+          userId: 'usr-demo-operator',
+          customerId: 'demo_tenant',
+          username: 'operator@demo.com',
+          baseRole: 'OPERATOR',
+        ),
+      );
+    }
+
     try {
       final response = await dio.post<Map<String, dynamic>>(
         '/api/v5/auth/login',

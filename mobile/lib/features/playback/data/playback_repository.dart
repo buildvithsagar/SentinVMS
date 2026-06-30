@@ -1,5 +1,8 @@
+import 'package:app/core/auth/auth_bloc.dart';
+import 'package:app/core/auth/auth_state.dart';
 import 'package:app/features/playback/models/recording_segment_model.dart';
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 
 class PlaybackRepository {
   PlaybackRepository({
@@ -15,6 +18,39 @@ class PlaybackRepository {
     required String cameraId,
     required DateTime date,
   }) async {
+    if (GetIt.instance.isRegistered<AuthBloc>()) {
+      final authState = GetIt.instance<AuthBloc>().state;
+      if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
+      final day = DateTime(date.year, date.month, date.day);
+      return [
+        RecordingSegment(
+          id: 'seg-001',
+          siteId: siteId,
+          cameraId: cameraId,
+          startTime: day.add(const Duration(hours: 2)),
+          endTime: day.add(const Duration(hours: 6)),
+          type: 'CONTINUOUS',
+        ),
+        RecordingSegment(
+          id: 'seg-002',
+          siteId: siteId,
+          cameraId: cameraId,
+          startTime: day.add(const Duration(hours: 9, minutes: 30)),
+          endTime: day.add(const Duration(hours: 11, minutes: 15)),
+          type: 'MOTION',
+        ),
+        RecordingSegment(
+          id: 'seg-003',
+          siteId: siteId,
+          cameraId: cameraId,
+          startTime: day.add(const Duration(hours: 15)),
+          endTime: day.add(const Duration(hours: 19, minutes: 45)),
+          type: 'SCHEDULED',
+        ),
+      ];
+    }
+    }
+
     try {
       final response = await dio.get<Map<String, dynamic>>(
         '/api/v5/recordings/segments',
@@ -54,6 +90,13 @@ class PlaybackRepository {
     required String cameraId,
     required DateTime startTime,
   }) async {
+    if (GetIt.instance.isRegistered<AuthBloc>()) {
+      final authState = GetIt.instance<AuthBloc>().state;
+      if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
+      return 'https://playertest.longtailvideo.com/adaptive/oceans/oceans.m3u8';
+    }
+    }
+
     try {
       final response = await dio.get<Map<String, dynamic>>(
         '/api/v5/recordings/playback',

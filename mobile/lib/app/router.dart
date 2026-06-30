@@ -72,11 +72,18 @@ class AppRouter {
       GoRoute(
         path: '/live_grid',
         builder: (BuildContext context, GoRouterState state) {
-          return BlocProvider<CameraBloc>(
-            create: (context) => CameraBloc(
-              cameraRepository: GetIt.instance<CameraRepository>(),
-              webSocketService: GetIt.instance<WebSocketService>(),
-            ),
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider<CameraBloc>(
+                create: (context) => CameraBloc(
+                  cameraRepository: GetIt.instance<CameraRepository>(),
+                  webSocketService: GetIt.instance<WebSocketService>(),
+                ),
+              ),
+              BlocProvider<AlarmBloc>.value(
+                value: GetIt.instance<AlarmBloc>()..add(const FetchAlarms()),
+              ),
+            ],
             child: const LiveGridPage(),
           );
         },

@@ -36,3 +36,6 @@
 - `[x]` D.5: Implement Alarm List UI and Reconciliation on Resume API syncing
 - `[x]` D.6: Build Evidence Export Wizard UI (initiator, status poller, and platform share sheet)
 - `[x]` D.7: Write tests for timeline seeks, WebSocket alarms, and export poller flows
+
+## ── Micro-Phase E: Dashboard Redesign (Feature 30) ──
+- `[x]` E.1: Implement tactical Live Viewport grid with clean slot indicators, quick control toolbars, action shortcuts, and sliding Alarm Messages panel.

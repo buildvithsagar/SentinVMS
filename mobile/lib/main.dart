@@ -45,7 +45,7 @@ void main() {
   final cameraRepository = CameraRepository(dio: dio);
   getIt.registerSingleton<CameraRepository>(cameraRepository);
 
-  final decoderPool = DecoderPool();
+  final decoderPool = DecoderPool(maxDecoders: 9);
   getIt.registerSingleton<DecoderPool>(decoderPool);
 
   final webSocketService = WebSocketService(authBloc: authBloc);

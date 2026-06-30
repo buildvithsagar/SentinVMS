@@ -43,6 +43,8 @@ dependencies:
 
 dev_dependencies:
   bloc_test: ^9.1.7
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
   flutter_test:
     sdk: flutter
   mocktail: ^1.0.4
@@ -58,6 +60,21 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/logo.png
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.png"
+  remove_alpha_ios: true
+
+flutter_native_splash:
+  color: "#071C17"
+  image: "assets/logo.png"
+  android: true
+  ios: true
+  fullscreen: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:

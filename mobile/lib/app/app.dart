@@ -17,42 +17,42 @@ class MyApp extends StatelessWidget {
         routerConfig: AppRouter.router,
         theme: ThemeData(
           brightness: Brightness.dark,
-          scaffoldBackgroundColor: const Color(0xFF0D0E12),
-          cardColor: const Color(0xFF14161F),
+          scaffoldBackgroundColor: const Color(0xFF0F172A),
+          cardColor: const Color(0x1F000000),
           colorScheme: const ColorScheme.dark(
-            primary: Color(0xFF02965E),
-            surface: Color(0xFF14161F),
-            error: Color(0xFFD32F2F),
+            primary: Color(0xFF2563EB),
+            error: Color(0xFFEF4444),
+            surface: Color(0xFF1E293B),
           ),
           textTheme: const TextTheme(
-            bodyLarge: TextStyle(color: Color(0xFFE2E8F0)),
-            bodyMedium: TextStyle(color: Color(0xFF70788C)),
+            bodyLarge: TextStyle(color: Colors.white),
+            bodyMedium: TextStyle(color: Color(0xFF94A3B8)),
             titleLarge: TextStyle(
-              color: Color(0xFFE2E8F0),
+              color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
           inputDecorationTheme: const InputDecorationTheme(
             filled: true,
-            fillColor: Color(0xFF14161F),
-            labelStyle: TextStyle(color: Color(0xFF70788C)),
+            fillColor: Color(0x0FFFFFFF),
+            labelStyle: TextStyle(color: Color(0xFF94A3B8)),
             enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF70788C), width: 0.5),
+              borderSide: BorderSide(color: Color(0x1FFFFFFF)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF02965E)),
+              borderSide: BorderSide(color: Color(0xFF2563EB), width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFFD32F2F), width: 0.5),
+              borderSide: BorderSide(color: Color(0xFFEF4444)),
             ),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF02965E),
-              foregroundColor: const Color(0xFFE2E8F0),
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
           ),
