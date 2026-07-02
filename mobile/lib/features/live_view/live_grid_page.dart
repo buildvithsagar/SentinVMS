@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:app/core/auth/auth_bloc.dart';
+import 'package:app/core/auth/auth_event.dart';
 import 'package:app/core/video/decoder_pool.dart';
 import 'package:app/features/alarms/bloc/alarm_bloc.dart';
 import 'package:app/features/alarms/bloc/alarm_event.dart';
@@ -11,6 +13,7 @@ import 'package:app/features/camera/bloc/camera_state.dart';
 import 'package:app/features/camera/data/camera_repository.dart';
 import 'package:app/features/camera/models/camera_model.dart';
 import 'package:app/features/live_view/widgets/video_tile.dart';
+import 'package:app/features/login/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -65,6 +68,16 @@ class _LiveGridPageState extends State<LiveGridPage> {
     });
   }
 
+  Future<void> _handleLogout() async {
+    try {
+      await GetIt.instance<AuthRepository>().logout();
+    } finally {
+      if (mounted) {
+        context.read<AuthBloc>().add(const AuthLoggedOut());
+      }
+    }
+  }
+
   void _showCameraPicker(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -109,6 +122,11 @@ class _LiveGridPageState extends State<LiveGridPage> {
             icon: const Icon(Icons.layers_clear, color: Color(0xFF94A3B8)),
             tooltip: 'Clear All Streams',
             onPressed: _clearAllSlots,
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Color(0xFF94A3B8)),
+            tooltip: 'Logout',
+            onPressed: _handleLogout,
           ),
         ],
       ),
