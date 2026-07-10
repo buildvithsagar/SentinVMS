@@ -24,6 +24,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   late final TextEditingController _totpController;
 
   bool _obscurePassword = true;
+  bool _showOtpView = false;
+  String _otpEmail = '';
 
   late final AnimationController _splashController;
   late final Animation<double> _logoScale;
@@ -39,7 +41,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     _customerIdController = TextEditingController(text: isTest ? '' : 'demo_tenant');
     _emailController = TextEditingController(text: isTest ? '' : 'operator@demo.com');
     _passwordController = TextEditingController(text: isTest ? '' : 'password123');
-    _totpController = TextEditingController(text: isTest ? '' : '123456');
+    _totpController = TextEditingController(text: isTest ? '' : '000000');
 
     _splashController = AnimationController(
       vsync: this,
@@ -174,6 +176,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           ),
                         );
                     context.go('/live_grid');
+                  } else if (state is LoginOtpRequired) {
+                    setState(() {
+                      _showOtpView = true;
+                      _otpEmail = state.email;
+                    });
                   }
                 },
                 builder: (context, state) {
@@ -290,156 +297,200 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                         const SizedBox(height: 16),
                                       ],
 
-                                      // Organization ID Field
-                                      const Text(
-                                        'ORGANIZATION ID',
-                                        style: TextStyle(
-                                          color: Color(0xFF94A3B8),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 1,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      TextFormField(
-                                        controller: _customerIdController,
-                                        enabled: !isLoading,
-                                        textInputAction: TextInputAction.next,
-                                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                                        decoration: _buildInputDecoration(
-                                          'Enter Organization Tenant ID',
-                                          helper: 'Default: demo_tenant',
-                                        ),
-                                        validator: (val) => val == null || val.trim().isEmpty
-                                            ? 'Organization ID is required'
-                                            : null,
-                                      ),
-                                      const SizedBox(height: 16),
-
-                                      // Operator Email Field
-                                      const Text(
-                                        'OPERATOR EMAIL',
-                                        style: TextStyle(
-                                          color: Color(0xFF94A3B8),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 1,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      TextFormField(
-                                        controller: _emailController,
-                                        enabled: !isLoading,
-                                        textInputAction: TextInputAction.next,
-                                        keyboardType: TextInputType.emailAddress,
-                                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                                        decoration: _buildInputDecoration(
-                                          'operator@domain.com',
-                                          helper: 'Default: operator@demo.com',
-                                        ),
-                                        validator: _validateEmail,
-                                      ),
-                                      const SizedBox(height: 16),
-
-                                      // Security Passcode Field
-                                      const Text(
-                                        'SECURITY PASSCODE',
-                                        style: TextStyle(
-                                          color: Color(0xFF94A3B8),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 1,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      TextFormField(
-                                        controller: _passwordController,
-                                        enabled: !isLoading,
-                                        obscureText: _obscurePassword,
-                                        textInputAction: TextInputAction.next,
-                                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                                        decoration: _buildInputDecoration(
-                                          '••••••••••••',
-                                          helper: 'Default: password123',
-                                          suffixIcon: IconButton(
-                                            icon: Icon(
-                                              _obscurePassword
-                                                  ? Icons.visibility_off_outlined
-                                                  : Icons.visibility_outlined,
-                                              color: const Color(0xFF94A3B8),
-                                              size: 20,
-                                            ),
-                                            onPressed: () {
-                                              setState(() {
-                                                _obscurePassword = !_obscurePassword;
-                                              });
-                                            },
+                                      if (!_showOtpView) ...[
+                                        // Operator Email Field
+                                        const Text(
+                                          'OPERATOR EMAIL',
+                                          style: TextStyle(
+                                            color: Color(0xFF94A3B8),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 1,
                                           ),
                                         ),
-                                        validator: (val) => val == null || val.isEmpty
-                                            ? 'Security Passcode is required'
-                                            : null,
-                                      ),
-                                      const SizedBox(height: 16),
+                                        const SizedBox(height: 8),
+                                        TextFormField(
+                                          key: const Key('emailField'),
+                                          controller: _emailController,
+                                          enabled: !isLoading,
+                                          textInputAction: TextInputAction.next,
+                                          keyboardType: TextInputType.emailAddress,
+                                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                                          decoration: _buildInputDecoration(
+                                            'operator@domain.com',
+                                            helper: 'Default: operator@demo.com',
+                                          ),
+                                          validator: _validateEmail,
+                                        ),
+                                        const SizedBox(height: 16),
 
-                                      // MFA TOTP Field
-                                      const Text(
-                                        'MFA TOTP VERIFICATION CODE',
-                                        style: TextStyle(
-                                          color: Color(0xFF94A3B8),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 1,
+                                        // Security Passcode Field
+                                        const Text(
+                                          'SECURITY PASSCODE',
+                                          style: TextStyle(
+                                            color: Color(0xFF94A3B8),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 1,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      TextFormField(
-                                        controller: _totpController,
-                                        enabled: !isLoading,
-                                        textInputAction: TextInputAction.done,
-                                        keyboardType: TextInputType.number,
-                                        maxLength: 6,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          letterSpacing: 8,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        decoration: _buildInputDecoration(
-                                          '000000',
-                                          helper: 'Enter 6-digit authenticator code (Default: 123456)',
-                                        ),
-                                        validator: (val) {
-                                          if (val == null || val.trim().isEmpty) {
-                                            return 'TOTP verification code is required';
-                                          }
-                                          if (val.trim().length != 6 ||
-                                              int.tryParse(val.trim()) == null) {
-                                            return 'Please enter a 6-digit numeric code';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      SizedBox(height: isTest ? 12 : 32),
-
-                                      // Submit Button
-                                      _AnimatedSubmitButton(
-                                        isLoading: isLoading,
-                                        onPressed: isLoading
-                                            ? null
-                                            : () {
-                                                if (_formKey.currentState?.validate() ?? false) {
-                                                  context.read<LoginBloc>().add(
-                                                        LoginSubmitted(
-                                                          customerId: _customerIdController.text.trim(),
-                                                          email: _emailController.text.trim(),
-                                                          password: _passwordController.text,
-                                                          totpCode: _totpController.text.trim(),
-                                                        ),
-                                                      );
-                                                }
+                                        const SizedBox(height: 8),
+                                        TextFormField(
+                                          key: const Key('passwordField'),
+                                          controller: _passwordController,
+                                          enabled: !isLoading,
+                                          obscureText: _obscurePassword,
+                                          textInputAction: TextInputAction.done,
+                                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                                          decoration: _buildInputDecoration(
+                                            '••••••••••••',
+                                            helper: 'Default: password123',
+                                            suffixIcon: IconButton(
+                                              icon: Icon(
+                                                _obscurePassword
+                                                    ? Icons.visibility_off_outlined
+                                                    : Icons.visibility_outlined,
+                                                color: const Color(0xFF94A3B8),
+                                                size: 20,
+                                              ),
+                                              onPressed: () {
+                                                setState(() {
+                                                  _obscurePassword = !_obscurePassword;
+                                                });
                                               },
-                                      ),
+                                            ),
+                                          ),
+                                          validator: (val) => val == null || val.isEmpty
+                                              ? 'Security Passcode is required'
+                                              : null,
+                                          onFieldSubmitted: (_) {
+                                            if (_formKey.currentState?.validate() ?? false) {
+                                              context.read<LoginBloc>().add(
+                                                LoginSubmitted(
+                                                  email: _emailController.text.trim(),
+                                                  password: _passwordController.text,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                        SizedBox(height: isTest ? 12 : 32),
+
+                                        // Submit Button
+                                        _AnimatedSubmitButton(
+                                          isLoading: isLoading,
+                                          onPressed: isLoading
+                                              ? null
+                                              : () {
+                                                  if (_formKey.currentState?.validate() ?? false) {
+                                                    context.read<LoginBloc>().add(
+                                                          LoginSubmitted(
+                                                            email: _emailController.text.trim(),
+                                                            password: _passwordController.text,
+                                                          ),
+                                                        );
+                                                  }
+                                                },
+                                        ),
+                                      ] else ...[
+                                        // OTP Verification View
+                                        const Text(
+                                          'MFA VERIFICATION CODE',
+                                          style: TextStyle(
+                                            color: Color(0xFF2DD4BF),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Please enter the 6-digit OTP code sent to $_otpEmail',
+                                          style: const TextStyle(
+                                            color: Color(0xFF94A3B8),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 20),
+                                        TextFormField(
+                                          key: const Key('otpField'),
+                                          controller: _totpController,
+                                          enabled: !isLoading,
+                                          textInputAction: TextInputAction.done,
+                                          keyboardType: TextInputType.number,
+                                          maxLength: 6,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 22,
+                                            letterSpacing: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          decoration: _buildInputDecoration(
+                                            '000000',
+                                            helper: 'Local bypass code: 000000',
+                                          ),
+                                          validator: (val) {
+                                            if (val == null || val.trim().isEmpty) {
+                                              return 'Verification code is required';
+                                            }
+                                            if (val.trim().length != 6 ||
+                                                int.tryParse(val.trim()) == null) {
+                                              return 'Please enter a 6-digit numeric code';
+                                            }
+                                            return null;
+                                          },
+                                          onFieldSubmitted: (_) {
+                                            if (_formKey.currentState?.validate() ?? false) {
+                                              context.read<LoginBloc>().add(
+                                                LoginOtpSubmitted(
+                                                  email: _otpEmail,
+                                                  otpCode: _totpController.text.trim(),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                        const SizedBox(height: 24),
+
+                                        // Verify OTP Button
+                                        _AnimatedSubmitButton(
+                                          label: 'VERIFY CODE',
+                                          isLoading: isLoading,
+                                          onPressed: isLoading
+                                              ? null
+                                              : () {
+                                                  if (_formKey.currentState?.validate() ?? false) {
+                                                    context.read<LoginBloc>().add(
+                                                          LoginOtpSubmitted(
+                                                            email: _otpEmail,
+                                                            otpCode: _totpController.text.trim(),
+                                                          ),
+                                                        );
+                                                  }
+                                                },
+                                        ),
+                                        const SizedBox(height: 12),
+
+                                        // Go Back Button
+                                        TextButton.icon(
+                                          onPressed: isLoading
+                                              ? null
+                                              : () {
+                                                  setState(() {
+                                                    _showOtpView = false;
+                                                    _totpController.clear();
+                                                  });
+                                                  // Clear BLoC failure states
+                                                  context.read<LoginBloc>().add(const LoginReset());
+                                                },
+                                          icon: const Icon(Icons.arrow_back, size: 16, color: Color(0xFF94A3B8)),
+                                          label: const Text(
+                                            'Back to login',
+                                            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -494,10 +545,12 @@ class _AnimatedSubmitButton extends StatefulWidget {
   const _AnimatedSubmitButton({
     required this.onPressed,
     required this.isLoading,
+    this.label = 'AUTHENTICATE SESSION',
   });
 
   final VoidCallback? onPressed;
   final bool isLoading;
+  final String label;
 
   @override
   State<_AnimatedSubmitButton> createState() => _AnimatedSubmitButtonState();
@@ -563,7 +616,7 @@ class _AnimatedSubmitButtonState extends State<_AnimatedSubmitButton>
                     ),
                   )
                 : Text(
-                    'AUTHENTICATE SESSION',
+                    widget.label,
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: const Color(0xFF0D2520),
                       fontWeight: FontWeight.bold,

@@ -52,13 +52,47 @@ class AuthRepository {
     }
   }
 
-  Future<AuthResult> login({
-    required String customerId,
+  Future<String> loginStep1({
     required String email,
     required String password,
-    String? totpCode,
   }) async {
-    if (customerId == 'demo_tenant' && email == 'operator@demo.com' && password == 'password123') {
+    if (email == 'operator@demo.com' && password == 'password123') {
+      return 'OTP_SENT';
+    }
+
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        'auth/login',
+        data: {
+          'email': email,
+          'password': password,
+        },
+      );
+
+      final data = response.data;
+      if (data == null) {
+        throw const NetworkException('Received empty response from server during login Step 1');
+      }
+
+      return data['status'] as String? ?? 'OTP_SENT';
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 401) {
+        throw const UnauthorizedException();
+      } else if (statusCode == 429) {
+        throw const RateLimitException();
+      } else {
+        throw NetworkException(e.message ?? 'Network error occurred');
+      }
+    }
+  }
+
+  Future<AuthResult> loginStep2({
+    required String email,
+    required String otpCode,
+    required String customerId,
+  }) async {
+    if (email == 'operator@demo.com' && (otpCode == '123456' || otpCode == '000000')) {
       return const AuthResult(
         accessToken: 'mock_jwt_token_for_demo_operator',
         user: UserProfile(
@@ -71,42 +105,26 @@ class AuthRepository {
     }
 
     try {
-      // Step 1: Validate Credentials
-      final loginResponse = await dio.post<Map<String, dynamic>>(
-        'auth/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
-      );
-
-      final loginData = loginResponse.data;
-      if (loginData == null) {
-        throw const NetworkException('Received empty response from server during login Step 1');
-      }
-
-      // Step 2: Verify OTP (defaults to '000000' bypass code in local dev environment)
-      final otp = (totpCode != null && totpCode.trim().isNotEmpty) ? totpCode.trim() : '000000';
-      final otpResponse = await dio.post<Map<String, dynamic>>(
+      final response = await dio.post<Map<String, dynamic>>(
         'auth/verify-otp',
         data: {
           'email': email,
-          'otpCode': otp,
+          'otpCode': otpCode,
         },
       );
 
-      final otpData = otpResponse.data;
-      if (otpData == null) {
+      final data = response.data;
+      if (data == null) {
         throw const NetworkException('Received empty response from server during OTP Step 2');
       }
 
-      final accessToken = otpData['accessToken'] as String?;
+      final accessToken = data['accessToken'] as String?;
       if (accessToken == null) {
         throw const NetworkException('Response missing access token');
       }
 
       // Extract set-cookie headers to retrieve the refresh token
-      final setCookieHeaders = otpResponse.headers['set-cookie'];
+      final setCookieHeaders = response.headers['set-cookie'];
       final refreshToken = _extractVmsRefreshCookie(setCookieHeaders);
       if (refreshToken != null) {
         await storage.storeRefreshToken(refreshToken);
@@ -126,6 +144,21 @@ class AuthRepository {
         throw NetworkException(e.message ?? 'Network error occurred');
       }
     }
+  }
+
+  // Combined login method for compatibility with tests / older code
+  Future<AuthResult> login({
+    required String customerId,
+    required String email,
+    required String password,
+    String? totpCode,
+  }) async {
+    await loginStep1(email: email, password: password);
+    return loginStep2(
+      email: email,
+      otpCode: totpCode ?? '000000',
+      customerId: customerId,
+    );
   }
 
   Future<void> logout() async {

@@ -16,6 +16,15 @@ class LoginLoading extends LoginState {
   const LoginLoading();
 }
 
+class LoginOtpRequired extends LoginState {
+  const LoginOtpRequired({required this.email});
+
+  final String email;
+
+  @override
+  List<Object?> get props => [email];
+}
+
 class LoginSuccess extends LoginState {
   const LoginSuccess({
     required this.accessToken,
