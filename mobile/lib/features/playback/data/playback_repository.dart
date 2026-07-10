@@ -53,10 +53,10 @@ class PlaybackRepository {
 
     try {
       final response = await dio.get<Map<String, dynamic>>(
-        '/api/v5/recordings/segments',
+        'recordings/timeline',
         queryParameters: <String, dynamic>{
-          'siteId': siteId,
-          'cameraId': cameraId,
+          'site_id': siteId,
+          'camera_id': cameraId,
           'date': date.toIso8601String().split('T').first,
         },
       );
@@ -66,9 +66,9 @@ class PlaybackRepository {
         throw const PlaybackException('Received empty response from server');
       }
 
-      final list = data['data'] as List<dynamic>?;
+      final list = data['segments'] as List<dynamic>? ?? data['data'] as List<dynamic>?;
       if (list == null) {
-        throw const PlaybackException('Missing data array in response');
+        throw const PlaybackException('Missing segments array in response');
       }
 
       return list
@@ -93,15 +93,14 @@ class PlaybackRepository {
     if (GetIt.instance.isRegistered<AuthBloc>()) {
       final authState = GetIt.instance<AuthBloc>().state;
       if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
-      return 'https://playertest.longtailvideo.com/adaptive/oceans/oceans.m3u8';
-    }
+        return 'https://playertest.longtailvideo.com/adaptive/oceans/oceans.m3u8';
+      }
     }
 
     try {
-      final response = await dio.get<Map<String, dynamic>>(
-        '/api/v5/recordings/playback',
-        queryParameters: <String, dynamic>{
-          'siteId': siteId,
+      final response = await dio.post<Map<String, dynamic>>(
+        'recordings/playback-session',
+        data: <String, dynamic>{
           'cameraId': cameraId,
           'startTime': startTime.toIso8601String(),
         },
@@ -112,12 +111,12 @@ class PlaybackRepository {
         throw const PlaybackException('Received empty response from server');
       }
 
-      final hlsUrl = data['hlsUrl'] as String?;
-      if (hlsUrl == null || hlsUrl.trim().isEmpty) {
+      final streamUri = data['streamUri'] as String? ?? data['hlsUrl'] as String?;
+      if (streamUri == null || streamUri.trim().isEmpty) {
         throw const PlaybackException('Response missing playback URL');
       }
 
-      return hlsUrl;
+      return streamUri;
     } on DioException catch (e) {
       throw PlaybackException(e.message ?? 'Failed to load playback URL');
     }

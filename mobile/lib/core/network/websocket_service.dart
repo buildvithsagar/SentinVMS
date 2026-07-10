@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:app/core/auth/auth_bloc.dart';
 import 'package:app/core/auth/auth_state.dart';
 import 'package:app/core/constants/app_constants.dart';
 import 'package:logger/logger.dart';
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 enum WebSocketStatus { connected, disconnected, reconnecting }
 
@@ -22,9 +21,7 @@ class WebSocketService {
   final Logger _logger;
   
   late final StreamSubscription<AuthState> _authSubscription;
-  WebSocket? _webSocket;
-  Timer? _reconnectTimer;
-  int _reconnectAttempts = 0;
+  socket_io.Socket? _socket;
   bool _isDisposed = false;
   String? _currentAccessToken;
 
@@ -46,75 +43,93 @@ class WebSocketService {
   void _onAuthStateChanged(AuthState state) {
     if (state is Authenticated) {
       if (_currentAccessToken != state.accessToken) {
-        _logger.i('WebSocket Auth state changed (Authenticated). Initializing socket.');
+        _logger.i('WebSocket Auth state changed (Authenticated). Initializing Socket.io.');
         _currentAccessToken = state.accessToken;
-        _reconnectAttempts = 0;
         _connect();
       }
     } else {
       if (_currentAccessToken != null) {
-        _logger.i('WebSocket Auth state changed (Unauthenticated). Closing socket.');
+        _logger.i('WebSocket Auth state changed (Unauthenticated). Closing Socket.io.');
         _currentAccessToken = null;
         _disconnect();
       }
     }
   }
 
-  Future<void> _connect() async {
+  void _connect() {
     if (_isDisposed || _currentAccessToken == null) return;
 
     _disconnectSocketOnly();
     _updateStatus(WebSocketStatus.reconnecting);
 
-    final wsBase = AppConstants.wsUrl
-        .replaceAll('https://', 'wss://')
-        .replaceAll('http://', 'ws://');
-    final wsUri = Uri.parse('$wsBase/ws?token=$_currentAccessToken');
-
-    _logger.d('Connecting to WebSocket: ${wsUri.scheme}://${wsUri.host}:${wsUri.port}${wsUri.path}?token=REDACTED');
+    const wsBase = AppConstants.wsUrl;
+    _logger.d('Connecting to Socket.io Broadcaster at: $wsBase with path: /ws/v5/telemetry');
 
     try {
-      const bypassPinning = bool.fromEnvironment('BYPASS_PINNING');
-      final client = HttpClient();
-      if (bypassPinning) {
-        client.badCertificateCallback = (cert, host, port) => true;
-      } else {
-        client.badCertificateCallback = (cert, host, port) => false;
-      }
-      
-      final connectionFuture = WebSocket.connect(
-        wsUri.toString(),
-        customClient: client,
-      );
-      
-      _webSocket = await connectionFuture.timeout(const Duration(seconds: 10));
-      _reconnectAttempts = 0;
-      _updateStatus(WebSocketStatus.connected);
-      _logger.i('WebSocket connected successfully.');
+      _socket = socket_io.io(wsBase, socket_io.OptionBuilder()
+        .setTransports(['websocket'])
+        .setPath('/ws/v5/telemetry')
+        .setAuth({'token': _currentAccessToken})
+        .enableAutoConnect()
+        .build());
 
-      // Resubscribe to sites
-      _resubscribeToAllSites();
+      _socket!.onConnect((_) {
+        _logger.i('Socket.io connected successfully.');
+        _updateStatus(WebSocketStatus.connected);
+        _resubscribeToAllSites();
+      });
 
-      _webSocket!.listen(
-        _onMessageReceived,
-        onError: _onConnectionError,
-        onDone: _onConnectionClosed,
-        cancelOnError: true,
-      );
+      _socket!.onDisconnect((_) {
+        _logger.w('Socket.io disconnected.');
+        _updateStatus(WebSocketStatus.disconnected);
+      });
+
+      _socket!.onConnectError((err) {
+        _logger.e('Socket.io connection error: $err');
+        _updateStatus(WebSocketStatus.disconnected);
+      });
+
+      // Listen to telemetry channels
+      _socket!.on('ai.alert.triggered', (data) {
+        _logger.d('Socket.io received alert: $data');
+        if (data is Map<String, dynamic>) {
+          _eventController.add({
+            'event': 'ai.alert.triggered',
+            'data': data['data'] ?? data,
+          });
+        }
+      });
+
+      _socket!.on('camera.status', (data) {
+        _logger.d('Socket.io received camera status: $data');
+        if (data is Map<String, dynamic>) {
+          _eventController.add({
+            'event': 'camera.status',
+            'data': data['data'] ?? data,
+          });
+        }
+      });
+      
+      _socket!.on('storage.alert', (data) {
+        _logger.d('Socket.io received storage alert: $data');
+        if (data is Map<String, dynamic>) {
+          _eventController.add({
+            'event': 'storage.alert',
+            'data': data['data'] ?? data,
+          });
+        }
+      });
+
     } catch (e) {
-      _logger.e('WebSocket connection failed: $e');
+      _logger.e('Socket.io initialization failed: $e');
       _updateStatus(WebSocketStatus.disconnected);
-      _scheduleReconnect();
     }
   }
 
   void _disconnectSocketOnly() {
-    _reconnectTimer?.cancel();
-    _reconnectTimer = null;
-    try {
-      _webSocket?.close();
-    } catch (_) {}
-    _webSocket = null;
+    _socket?.disconnect();
+    _socket?.dispose();
+    _socket = null;
   }
 
   void _disconnect() {
@@ -129,43 +144,6 @@ class WebSocketService {
         _statusController.add(newStatus);
       }
     }
-  }
-
-  void _scheduleReconnect() {
-    if (_isDisposed || _currentAccessToken == null) return;
-    
-    _reconnectTimer?.cancel();
-    final delaySeconds = (1 << _reconnectAttempts).clamp(1, 30);
-    _reconnectAttempts++;
-
-    _logger.d('Scheduling WebSocket reconnect in $delaySeconds seconds (attempt $_reconnectAttempts)');
-    _reconnectTimer = Timer(Duration(seconds: delaySeconds), _connect);
-  }
-
-  void _onMessageReceived(dynamic message) {
-    if (message is String) {
-      try {
-        final decoded = jsonDecode(message);
-        if (decoded is Map<String, dynamic>) {
-          if (!_eventController.isClosed) {
-            _eventController.add(decoded);
-          }
-        }
-      } catch (e) {
-        _logger.e('WebSocket failed to parse message: $e');
-      }
-    }
-  }
-
-  void _onConnectionError(dynamic error) {
-    _logger.e('WebSocket error: $error');
-    _onConnectionClosed();
-  }
-
-  void _onConnectionClosed() {
-    _logger.w('WebSocket connection closed.');
-    _updateStatus(WebSocketStatus.disconnected);
-    _scheduleReconnect();
   }
 
   /// Subscribes to telemetry events for a site.
@@ -183,22 +161,18 @@ class WebSocketService {
 
   void _resubscribeToAllSites() {
     for (final siteId in _subscribedSites) {
-      _logger.d('WebSocket resubscribing to site: $siteId');
+      _logger.d('Socket.io resubscribing to site: $siteId');
       _sendEvent('subscribe:site', {'siteId': siteId});
     }
   }
 
   void _sendEvent(String event, Map<String, dynamic> data) {
-    final socket = _webSocket;
-    if (socket != null && isConnected) {
+    final s = _socket;
+    if (s != null && s.connected) {
       try {
-        final payload = jsonEncode({
-          'event': event,
-          'data': data,
-        });
-        socket.add(payload);
+        s.emit(event, data);
       } catch (e) {
-        _logger.e('WebSocket failed to send event $event: $e');
+        _logger.e('Socket.io failed to emit event $event: $e');
       }
     }
   }

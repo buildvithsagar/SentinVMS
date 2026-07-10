@@ -92,10 +92,10 @@ class RefreshTokenInterceptor extends QueuedInterceptor {
     )..httpClientAdapter = dio.httpClientAdapter;
 
     final response = await refreshDio.post<Map<String, dynamic>>(
-      '/api/v5/auth/refresh',
+      'auth/refresh',
       options: Options(
         headers: <String, dynamic>{
-          'Cookie': 'vms_refresh=$refreshToken',
+          'Cookie': 'refreshToken=$refreshToken',
         },
       ),
     );
@@ -156,7 +156,9 @@ class RefreshTokenInterceptor extends QueuedInterceptor {
       final parts = cookie.split(';');
       for (final part in parts) {
         final trimmed = part.trim();
-        if (trimmed.startsWith('vms_refresh=')) {
+        if (trimmed.startsWith('refreshToken=')) {
+          return trimmed.substring('refreshToken='.length);
+        } else if (trimmed.startsWith('vms_refresh=')) {
           return trimmed.substring('vms_refresh='.length);
         }
       }

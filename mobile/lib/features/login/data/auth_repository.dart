@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:app/core/auth/user_profile.dart';
 import 'package:app/core/storage/secure_storage_service.dart';
 import 'package:dio/dio.dart';
@@ -21,6 +22,36 @@ class AuthRepository {
   final Dio dio;
   final SecureStorageService storage;
 
+  UserProfile _parseJwt(String token, String fallbackEmail, String fallbackCustomerId) {
+    try {
+      final parts = token.split('.');
+      if (parts.length < 2) throw const FormatException('Invalid JWT structure');
+      final payload = parts[1];
+      final normalized = base64Url.normalize(payload);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final map = json.decode(decoded) as Map<String, dynamic>;
+
+      final userId = map['id'] as String? ?? map['sub'] as String? ?? 'usr-unknown';
+      final email = map['email'] as String? ?? fallbackEmail;
+      final role = map['role'] as String? ?? 'OPERATOR';
+      final customerId = map['customerId'] as String? ?? map['tenantId'] as String? ?? fallbackCustomerId;
+
+      return UserProfile(
+        userId: userId,
+        customerId: customerId,
+        username: email,
+        baseRole: role,
+      );
+    } catch (e) {
+      return UserProfile(
+        userId: 'usr-fallback',
+        customerId: fallbackCustomerId,
+        username: fallbackEmail,
+        baseRole: 'OPERATOR',
+      );
+    }
+  }
+
   Future<AuthResult> login({
     required String customerId,
     required String email,
@@ -40,39 +71,49 @@ class AuthRepository {
     }
 
     try {
-      final response = await dio.post<Map<String, dynamic>>(
-        '/api/v5/auth/login',
+      // Step 1: Validate Credentials
+      final loginResponse = await dio.post<Map<String, dynamic>>(
+        'auth/login',
         data: {
-          'customer_id': customerId,
           'email': email,
           'password': password,
-          if (totpCode != null && totpCode.isNotEmpty) 'totpCode': totpCode,
         },
       );
 
-      final data = response.data;
-      if (data == null) {
-        throw const NetworkException('Received empty response from server');
+      final loginData = loginResponse.data;
+      if (loginData == null) {
+        throw const NetworkException('Received empty response from server during login Step 1');
       }
 
-      final accessToken = data['accessToken'] as String?;
+      // Step 2: Verify OTP (defaults to '000000' bypass code in local dev environment)
+      final otp = (totpCode != null && totpCode.trim().isNotEmpty) ? totpCode.trim() : '000000';
+      final otpResponse = await dio.post<Map<String, dynamic>>(
+        'auth/verify-otp',
+        data: {
+          'email': email,
+          'otpCode': otp,
+        },
+      );
+
+      final otpData = otpResponse.data;
+      if (otpData == null) {
+        throw const NetworkException('Received empty response from server during OTP Step 2');
+      }
+
+      final accessToken = otpData['accessToken'] as String?;
       if (accessToken == null) {
         throw const NetworkException('Response missing access token');
       }
 
-      final userMap = data['user'] as Map<String, dynamic>?;
-      if (userMap == null) {
-        throw const NetworkException('Response missing user profile');
-      }
-
-      final user = UserProfile.fromJson(userMap);
-
       // Extract set-cookie headers to retrieve the refresh token
-      final setCookieHeaders = response.headers['set-cookie'];
+      final setCookieHeaders = otpResponse.headers['set-cookie'];
       final refreshToken = _extractVmsRefreshCookie(setCookieHeaders);
       if (refreshToken != null) {
         await storage.storeRefreshToken(refreshToken);
       }
+
+      // Parse user profile locally from JWT access token claims
+      final user = _parseJwt(accessToken, email, customerId);
 
       return AuthResult(accessToken: accessToken, user: user);
     } on DioException catch (e) {
@@ -89,7 +130,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      await dio.post<void>('/api/v5/auth/logout');
+      await dio.post<void>('auth/logout');
     } finally {
       // Always clear local storage even if API call fails
       await storage.clearAll();
@@ -102,7 +143,9 @@ class AuthRepository {
       final parts = cookie.split(';');
       for (final part in parts) {
         final trimmed = part.trim();
-        if (trimmed.startsWith('vms_refresh=')) {
+        if (trimmed.startsWith('refreshToken=')) {
+          return trimmed.substring('refreshToken='.length);
+        } else if (trimmed.startsWith('vms_refresh=')) {
           return trimmed.substring('vms_refresh='.length);
         }
       }

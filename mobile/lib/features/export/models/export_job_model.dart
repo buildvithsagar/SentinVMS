@@ -15,18 +15,20 @@ class ExportJob extends Equatable {
   });
 
   factory ExportJob.fromJson(Map<String, dynamic> json) {
+    final startTimeStr = json['startTime'] as String? ?? json['start_time'] as String?;
+    final endTimeStr = json['endTime'] as String? ?? json['end_time'] as String?;
+    final createdAtStr = json['createdAt'] as String? ?? json['created_at'] as String?;
+
     return ExportJob(
-      id: json['exportId'] as String? ?? json['id'] as String? ?? '',
+      id: json['export_id'] as String? ?? json['exportId'] as String? ?? json['id'] as String? ?? '',
       cameraId: json['cameraId'] as String? ?? '',
       siteId: json['siteId'] as String? ?? '',
-      startTime: DateTime.parse(json['startTime'] as String),
-      endTime: DateTime.parse(json['endTime'] as String),
+      startTime: startTimeStr != null ? DateTime.parse(startTimeStr) : DateTime.now(),
+      endTime: endTimeStr != null ? DateTime.parse(endTimeStr) : DateTime.now(),
       status: json['status'] as String? ?? 'PENDING',
-      downloadUrl: json['downloadUrl'] as String?,
-      progress: (json['progress'] as num?)?.toDouble(),
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String)
-          : null,
+      downloadUrl: json['download_url'] as String? ?? json['downloadUrl'] as String?,
+      progress: (json['progress'] as num?)?.toDouble() ?? (json['status'] == 'COMPLETE' || json['status'] == 'COMPLETED' ? 1.0 : 0.0),
+      createdAt: createdAtStr != null ? DateTime.parse(createdAtStr) : null,
     );
   }
 
@@ -42,7 +44,7 @@ class ExportJob extends Equatable {
   final double? progress;
   final DateTime? createdAt;
 
-  bool get isCompleted => status == 'COMPLETED';
+  bool get isCompleted => status == 'COMPLETED' || status == 'COMPLETE';
   bool get isFailed => status == 'FAILED';
   bool get isPending => status == 'PENDING' || status == 'PROCESSING';
 

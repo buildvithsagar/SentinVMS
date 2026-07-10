@@ -56,7 +56,7 @@ class CameraRepository {
     }
     try {
       final response = await dio.get<Map<String, dynamic>>(
-        '/api/v5/cameras',
+        'cameras',
         queryParameters: <String, dynamic>{
           if (siteId != null) 'siteId': siteId,
         },
@@ -95,9 +95,8 @@ class CameraRepository {
 
     try {
       final response = await dio.get<Map<String, dynamic>>(
-        '/api/v5/recordings/stream',
+        'recordings/stream',
         queryParameters: <String, dynamic>{
-          'siteId': siteId,
           'cameraId': cameraId,
         },
       );
@@ -107,12 +106,12 @@ class CameraRepository {
         throw const CameraException('Received empty response from server');
       }
 
-      final hlsUrl = data['hlsUrl'] as String?;
-      if (hlsUrl == null || hlsUrl.trim().isEmpty) {
+      final streamUri = data['streamUri'] as String?;
+      if (streamUri == null || streamUri.trim().isEmpty) {
         throw const CameraException('Response missing stream URL');
       }
 
-      return hlsUrl;
+      return streamUri;
     } on DioException catch (e) {
       throw CameraException(e.message ?? 'Failed to load live stream URL');
     }

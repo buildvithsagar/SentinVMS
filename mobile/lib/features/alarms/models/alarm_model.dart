@@ -16,21 +16,37 @@ class Alarm extends Equatable {
   });
 
   factory Alarm.fromJson(Map<String, dynamic> json) {
+    final timestampVal = json['timestamp'];
+    var parsedTimestamp = DateTime.now();
+    if (timestampVal != null) {
+      if (timestampVal is int) {
+        parsedTimestamp = DateTime.fromMillisecondsSinceEpoch(timestampVal);
+      } else {
+        parsedTimestamp = DateTime.parse(timestampVal.toString());
+      }
+    }
+
+    final ackVal = json['acknowledgedAt'];
+    DateTime? parsedAck;
+    if (ackVal != null) {
+      if (ackVal is int) {
+        parsedAck = DateTime.fromMillisecondsSinceEpoch(ackVal);
+      } else {
+        parsedAck = DateTime.parse(ackVal.toString());
+      }
+    }
+
     return Alarm(
       id: json['alarmId'] as String? ?? json['id'] as String? ?? '',
       siteId: json['siteId'] as String? ?? '',
       cameraId: json['cameraId'] as String? ?? '',
       cameraName: json['cameraName'] as String? ?? '',
-      eventClass: json['eventClass'] as String? ?? '',
+      eventClass: json['eventClass'] as String? ?? json['model'] as String? ?? '',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
       status: json['status'] as String? ?? 'ACTIVE',
-      timestamp: json['timestamp'] != null
-          ? DateTime.parse(json['timestamp'] as String)
-          : DateTime.now(),
+      timestamp: parsedTimestamp,
       acknowledgedBy: json['acknowledgedBy'] as String?,
-      acknowledgedAt: json['acknowledgedAt'] != null
-          ? DateTime.parse(json['acknowledgedAt'] as String)
-          : null,
+      acknowledgedAt: parsedAck,
     );
   }
 

@@ -103,12 +103,14 @@ class ExportRepository {
 
     try {
       final response = await dio.post<Map<String, dynamic>>(
-        '/api/v5/exports',
+        'recordings/$cameraId/export',
         data: <String, dynamic>{
-          'siteId': siteId,
-          'cameraId': cameraId,
-          'startTime': startTime.toIso8601String(),
-          'endTime': endTime.toIso8601String(),
+          'start_time': startTime.toIso8601String(),
+          'end_time': endTime.toIso8601String(),
+          'watermark': true,
+          'watermark_text': 'CONFIDENTIAL - MOBILE EXPORT',
+          'format': 'MP4',
+          'reason': 'Security Incident Triaging',
         },
       );
 
@@ -117,12 +119,18 @@ class ExportRepository {
         throw const ExportException('Received empty response from server');
       }
 
-      final jobJson = data['data'] as Map<String, dynamic>?;
-      if (jobJson == null) {
-        throw const ExportException('Missing data in response');
-      }
+      final jobJson = data['data'] as Map<String, dynamic>? ?? data;
 
-      return ExportJob.fromJson(jobJson);
+      return ExportJob(
+        id: jobJson['export_id'] as String? ?? jobJson['exportId'] as String? ?? '',
+        cameraId: cameraId,
+        siteId: siteId,
+        startTime: startTime,
+        endTime: endTime,
+        status: jobJson['status'] as String? ?? 'PENDING',
+        progress: 0,
+        createdAt: DateTime.now(),
+      );
     } on DioException catch (e) {
       throw ExportException(e.message ?? 'Failed to create export job');
     }
@@ -132,25 +140,25 @@ class ExportRepository {
     if (GetIt.instance.isRegistered<AuthBloc>()) {
       final authState = GetIt.instance<AuthBloc>().state;
       if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
-      final idx = _demoExports.indexWhere((j) => j.id == exportId);
-      if (idx != -1) {
-        return _demoExports[idx];
+        final idx = _demoExports.indexWhere((j) => j.id == exportId);
+        if (idx != -1) {
+          return _demoExports[idx];
+        }
+        return ExportJob(
+          id: exportId,
+          cameraId: 'cam-front-gate',
+          siteId: 'site-001',
+          startTime: DateTime.now().subtract(const Duration(hours: 1)),
+          endTime: DateTime.now(),
+          status: 'FAILED',
+          createdAt: DateTime.now(),
+        );
       }
-      return ExportJob(
-        id: exportId,
-        cameraId: 'cam-front-gate',
-        siteId: 'site-001',
-        startTime: DateTime.now().subtract(const Duration(hours: 1)),
-        endTime: DateTime.now(),
-        status: 'FAILED',
-        createdAt: DateTime.now(),
-      );
-    }
     }
 
     try {
       final response = await dio.get<Map<String, dynamic>>(
-        '/api/v5/exports/$exportId',
+        'recordings/exports/$exportId',
       );
 
       final data = response.data;
@@ -158,10 +166,7 @@ class ExportRepository {
         throw const ExportException('Received empty response from server');
       }
 
-      final jobJson = data['data'] as Map<String, dynamic>?;
-      if (jobJson == null) {
-        throw const ExportException('Missing data in response');
-      }
+      final jobJson = data['data'] as Map<String, dynamic>? ?? data;
 
       return ExportJob.fromJson(jobJson);
     } on DioException catch (e) {
@@ -174,13 +179,13 @@ class ExportRepository {
     if (GetIt.instance.isRegistered<AuthBloc>()) {
       final authState = GetIt.instance<AuthBloc>().state;
       if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
-      return _demoExports;
-    }
+        return _demoExports;
+      }
     }
 
     try {
       final response = await dio.get<Map<String, dynamic>>(
-        '/api/v5/exports',
+        'recordings/exports',
       );
 
       final data = response.data;
@@ -188,10 +193,7 @@ class ExportRepository {
         throw const ExportException('Received empty response from server');
       }
 
-      final list = data['data'] as List<dynamic>?;
-      if (list == null) {
-        throw const ExportException('Missing data array in response');
-      }
+      final list = data['data'] as List<dynamic>? ?? data['exports'] as List<dynamic>? ?? [data];
 
       return list
           .map((json) => ExportJob.fromJson(json as Map<String, dynamic>))

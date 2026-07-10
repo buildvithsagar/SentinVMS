@@ -52,7 +52,7 @@ class AlarmRepository {
     }
     try {
       final response = await dio.get<Map<String, dynamic>>(
-        '/api/v5/alarms',
+        'events',
         queryParameters: <String, dynamic>{
           if (siteId != null) 'siteId': siteId,
           if (status != null) 'status': status,
@@ -83,22 +83,22 @@ class AlarmRepository {
     if (GetIt.instance.isRegistered<AuthBloc>()) {
       final authState = GetIt.instance<AuthBloc>().state;
       if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
-      return Alarm(
-        id: alarmId,
-        siteId: 'site-001',
-        cameraId: 'cam-front-gate',
-        cameraName: 'Front Gate Camera',
-        eventClass: 'INTRUSION',
-        confidence: 0.9,
-        timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
-        status: 'ACKNOWLEDGED',
-      );
+        return Alarm(
+          id: alarmId,
+          siteId: 'site-001',
+          cameraId: 'cam-front-gate',
+          cameraName: 'Front Gate Camera',
+          eventClass: 'INTRUSION',
+          confidence: 0.9,
+          timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
+          status: 'ACKNOWLEDGED',
+        );
       }
     }
 
     try {
-      final response = await dio.post<Map<String, dynamic>>(
-        '/api/v5/alarms/$alarmId/acknowledge',
+      final response = await dio.patch<Map<String, dynamic>>(
+        'events/$alarmId/acknowledge',
       );
 
       final data = response.data;
@@ -106,10 +106,8 @@ class AlarmRepository {
         throw const AlarmException('Received empty response from server');
       }
 
-      final alarmJson = data['data'] as Map<String, dynamic>?;
-      if (alarmJson == null) {
-        throw const AlarmException('Missing data in response');
-      }
+      // Backend returns updated alarm directly, or wrapped under 'data'
+      final alarmJson = data['data'] as Map<String, dynamic>? ?? data;
 
       return Alarm.fromJson(alarmJson);
     } on DioException catch (e) {

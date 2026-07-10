@@ -93,7 +93,7 @@ void main() {
           .thenAnswer((invocation) async {
         callCount++;
         final options = invocation.positionalArguments[0] as RequestOptions;
-        if (options.path.contains('/api/v5/auth/refresh')) {
+        if (options.path.contains('auth/refresh')) {
           return refreshResponse;
         } else if (callCount == 1) {
           return ResponseBody.fromString('', 401);
