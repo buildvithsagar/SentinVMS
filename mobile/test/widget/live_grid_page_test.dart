@@ -92,7 +92,7 @@ void main() {
       await tester.tap(find.text('2'));
       await tester.pump();
 
-      expect(find.text('Assign Camera to Selected Slot'), findsOneWidget);
+      expect(find.text('Assign Camera'), findsOneWidget);
     });
 
     testWidgets('clicking Select opens camera picker bottom sheet', (tester) async {
@@ -113,7 +113,7 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget());
 
-      final selectButton = find.text('Assign Camera to Selected Slot');
+      final selectButton = find.text('Assign Camera');
       await tester.tap(selectButton);
       await tester.pumpAndSettle();
 
