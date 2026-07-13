@@ -94,6 +94,46 @@ class _LiveGridPageState extends State<LiveGridPage> {
     );
   }
 
+  void _showPanicDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Text('EMERGENCY PANIC ALERT', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
+          content: const Text(
+            'Select action to dispatch emergency protocols:',
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Emergency Siren Triggered on Site!')),
+                );
+              },
+              child: const Text('TRIGGER SIREN', style: TextStyle(color: Color(0xFFEF4444))),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Calling Security Control Room...')),
+                );
+              },
+              child: const Text('CALL CONTROL ROOM', style: TextStyle(color: Color(0xFF2DD4BF))),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.white54)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _handleLogout() async {
     try {
       await GetIt.instance<AuthRepository>().logout();
@@ -190,50 +230,6 @@ class _LiveGridPageState extends State<LiveGridPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        key: const Key('panicAlertButton'),
-        backgroundColor: const Color(0xFFEF4444),
-        child: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-        onPressed: () {
-          showDialog<void>(
-            context: context,
-            builder: (dialogContext) {
-              return AlertDialog(
-                backgroundColor: const Color(0xFF1E293B),
-                title: const Text('EMERGENCY PANIC ALERT', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
-                content: const Text(
-                  'Select action to dispatch emergency protocols:',
-                  style: TextStyle(color: Colors.white),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Emergency Siren Triggered on Site!')),
-                      );
-                    },
-                    child: const Text('TRIGGER SIREN', style: TextStyle(color: Color(0xFFEF4444))),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Calling Security Control Room...')),
-                      );
-                    },
-                    child: const Text('CALL CONTROL ROOM', style: TextStyle(color: Color(0xFF2DD4BF))),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('CANCEL', style: TextStyle(color: Colors.white54)),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      ),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -251,6 +247,12 @@ class _LiveGridPageState extends State<LiveGridPage> {
             icon: const Icon(Icons.layers_clear, color: Color(0xFF94A3B8)),
             tooltip: 'Clear All Streams',
             onPressed: _confirmClearAllSlots,
+          ),
+          IconButton(
+            key: const Key('panicAlertButton'),
+            icon: const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444)),
+            tooltip: 'Emergency Panic Alert',
+            onPressed: _showPanicDialog,
           ),
         ],
       ),
