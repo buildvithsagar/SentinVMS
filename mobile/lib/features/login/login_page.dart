@@ -161,6 +161,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
+      extendBodyBehindAppBar: true,
       appBar: _showOtpView
           ? AppBar(
               backgroundColor: Colors.transparent,
