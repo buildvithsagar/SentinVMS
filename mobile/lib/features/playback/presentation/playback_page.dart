@@ -283,9 +283,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                 icon: const Icon(Icons.camera_alt, color: Colors.white70),
                 tooltip: 'Capture Frame',
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Playback snapshot saved to gallery!')),
-                  );
+                  _showSnapshotPreviewDialog('Playback Feed');
                 },
               ),
               // Speed drop-down choice selector
@@ -371,6 +369,69 @@ class _PlaybackPageState extends State<PlaybackPage> {
           ],
         ),
       ],
+    );
+  }
+
+  void _showSnapshotPreviewDialog(String cameraName) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Row(
+            children: [
+              Icon(Icons.camera_alt, color: Color(0xFF2DD4BF)),
+              SizedBox(width: 8),
+              Text('Snapshot Captured', style: TextStyle(color: Colors.white, fontSize: 16)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Frame captured from $cameraName', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+              const SizedBox(height: 12),
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.image, color: Colors.white30, size: 40),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Opening system sharing panel...')),
+                );
+              },
+              child: const Text('SHARE', style: TextStyle(color: Color(0xFF2DD4BF))),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Snapshot saved to phone album.')),
+                );
+              },
+              child: const Text('SAVE TO ALBUM', style: TextStyle(color: Color(0xFF10B981))),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('CLOSE', style: TextStyle(color: Colors.white54)),
+            ),
+          ],
+        );
+      },
     );
   }
 

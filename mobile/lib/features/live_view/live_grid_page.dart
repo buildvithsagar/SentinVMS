@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
@@ -32,6 +33,11 @@ class _LiveGridPageState extends State<LiveGridPage> {
   int _layoutGridSize = 2; // 1 for 1x1, 2 for 2x2, 3 for 3x3
   int _selectedSlotIndex = 0;
 
+  final List<bool> _instantPlaybackSlots = List<bool>.filled(9, false);
+  bool _isPanicOverlayActive = false;
+  int _panicCountdown = 5;
+  Timer? _panicTimer;
+
   bool _isPlaying = true;
   bool _isQualityHD = false;
   bool _isMuted = false;
@@ -46,6 +52,12 @@ class _LiveGridPageState extends State<LiveGridPage> {
     super.initState();
     // Dispatch fetch event early so cameras are available when user opens picker
     context.read<CameraBloc>().add(const FetchCameras());
+  }
+
+  @override
+  void dispose() {
+    _panicTimer?.cancel();
+    super.dispose();
   }
 
   void _selectSlot(int index) {
@@ -94,6 +106,96 @@ class _LiveGridPageState extends State<LiveGridPage> {
     );
   }
 
+  void _showSnapshotPreviewDialog(String cameraName) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Row(
+            children: [
+              Icon(Icons.camera_alt, color: Color(0xFF2DD4BF)),
+              SizedBox(width: 8),
+              Text('Snapshot Captured', style: TextStyle(color: Colors.white, fontSize: 16)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Frame captured from $cameraName', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+              const SizedBox(height: 12),
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.image, color: Colors.white30, size: 40),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Opening system sharing panel...')),
+                );
+              },
+              child: const Text('SHARE', style: TextStyle(color: Color(0xFF2DD4BF))),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Snapshot saved to phone album.')),
+                );
+              },
+              child: const Text('SAVE TO ALBUM', style: TextStyle(color: Color(0xFF10B981))),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('CLOSE', style: TextStyle(color: Colors.white54)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _startPanicCountdown(String protocol) {
+    setState(() {
+      _isPanicOverlayActive = true;
+      _panicCountdown = 5;
+    });
+    _panicTimer?.cancel();
+    _panicTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_panicCountdown > 1) {
+        setState(() {
+          _panicCountdown--;
+        });
+      } else {
+        timer.cancel();
+        setState(() {
+          _panicCountdown = 0;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$protocol DISPATCHED TO CONTROL ROOM!'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    });
+  }
+
   void _showPanicDialog() {
     showDialog<void>(
       context: context,
@@ -109,18 +211,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Emergency Siren Triggered on Site!')),
-                );
+                _startPanicCountdown('EMERGENCY SIREN');
               },
               child: const Text('TRIGGER SIREN', style: TextStyle(color: Color(0xFFEF4444))),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Calling Security Control Room...')),
-                );
+                _startPanicCountdown('CONTROL ROOM ALARM');
               },
               child: const Text('CALL CONTROL ROOM', style: TextStyle(color: Color(0xFF2DD4BF))),
             ),
@@ -256,87 +354,148 @@ class _LiveGridPageState extends State<LiveGridPage> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Control Bar: Layout toggle and Quick Info
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _layoutGridSize == 1
-                      ? 'Layout: 1x1 Focus (Single Feed)'
-                      : _layoutGridSize == 2
-                          ? 'Layout: 2x2 Grid (4 Feeds)'
-                          : 'Layout: 3x3 Grid (9 Feeds)',
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Row(
+          Column(
+            children: [
+              // Control Bar: Layout toggle and Quick Info
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.rectangle_outlined,
-                        color: _layoutGridSize == 1 ? const Color(0xFF2DD4BF) : const Color(0xFF94A3B8),
+                    Text(
+                      _layoutGridSize == 1
+                          ? 'Layout: 1x1 Focus (Single Feed)'
+                          : _layoutGridSize == 2
+                              ? 'Layout: 2x2 Grid (4 Feeds)'
+                              : 'Layout: 3x3 Grid (9 Feeds)',
+                      style: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
-                      tooltip: '1x1 View',
-                      onPressed: () {
-                        setState(() {
-                          _layoutGridSize = 1;
-                        });
-                      },
                     ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.grid_view,
-                        color: _layoutGridSize == 2 ? const Color(0xFF2DD4BF) : const Color(0xFF94A3B8),
-                      ),
-                      tooltip: '2x2 View',
-                      onPressed: () {
-                        setState(() {
-                          _layoutGridSize = 2;
-                        });
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.grid_on,
-                        color: _layoutGridSize == 3 ? const Color(0xFF2DD4BF) : const Color(0xFF94A3B8),
-                      ),
-                      tooltip: '3x3 View',
-                      onPressed: () {
-                        setState(() {
-                          _layoutGridSize = 3;
-                        });
-                      },
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.rectangle_outlined,
+                            color: _layoutGridSize == 1 ? const Color(0xFF2DD4BF) : const Color(0xFF94A3B8),
+                          ),
+                          tooltip: '1x1 View',
+                          onPressed: () {
+                            setState(() {
+                              _layoutGridSize = 1;
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.grid_view,
+                            color: _layoutGridSize == 2 ? const Color(0xFF2DD4BF) : const Color(0xFF94A3B8),
+                          ),
+                          tooltip: '2x2 View',
+                          onPressed: () {
+                            setState(() {
+                              _layoutGridSize = 2;
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.grid_on,
+                            color: _layoutGridSize == 3 ? const Color(0xFF2DD4BF) : const Color(0xFF94A3B8),
+                          ),
+                          tooltip: '3x3 View',
+                          onPressed: () {
+                            setState(() {
+                              _layoutGridSize = 3;
+                            });
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+
+              // Main Viewport Area
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: _layoutGridSize == 3
+                      ? _build3x3Grid()
+                      : _layoutGridSize == 2
+                          ? _build2x2Grid()
+                          : _build1x1Focus(),
+                ),
+              ),
+
+              // Grid Toolbars Row 1 & 2
+              _buildGridToolbars(),
+
+              // Sliding Alarm Messages Panel
+              _buildAlarmPanel(),
+            ],
           ),
-
-          // Main Viewport Area
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: _layoutGridSize == 3
-                  ? _build3x3Grid()
-                  : _layoutGridSize == 2
-                      ? _build2x2Grid()
-                      : _build1x1Focus(),
+          if (_isPanicOverlayActive)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.95),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.gpp_bad, size: 80, color: Color(0xFFEF4444)),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'EMERGENCY DISPATCH IN PROGRESS',
+                      style: TextStyle(color: Color(0xFFEF4444), fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _panicCountdown > 0 
+                          ? 'Notifying authorities in $_panicCountdown seconds...' 
+                          : 'AUTHORITIES NOTIFIED - LIVE VIDEO ENGAGED',
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    const SizedBox(height: 36),
+                    if (_panicCountdown > 0)
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white24,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        onPressed: () {
+                          _panicTimer?.cancel();
+                          setState(() {
+                            _isPanicOverlayActive = false;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Dispatch cancelled by operator.')),
+                          );
+                        },
+                        child: const Text('CANCEL DISPATCH'),
+                      )
+                    else
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEF4444),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPanicOverlayActive = false;
+                          });
+                        },
+                        child: const Text('DISMISS OVERLAY'),
+                      ),
+                  ],
+                ),
+              ),
             ),
-          ),
-
-          // Grid Toolbars Row 1 & 2
-          _buildGridToolbars(),
-
-          // Sliding Alarm Messages Panel
-          _buildAlarmPanel(),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -479,10 +638,52 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   ),
                 ),
               )
-            : VideoTile(
-                camera: camera,
-                cameraRepository: GetIt.instance<CameraRepository>(),
-                decoderPool: GetIt.instance<DecoderPool>(),
+            : Stack(
+                children: [
+                  VideoTile(
+                    camera: camera,
+                    cameraRepository: GetIt.instance<CameraRepository>(),
+                    decoderPool: GetIt.instance<DecoderPool>(),
+                  ),
+                  if (_instantPlaybackSlots[index])
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.55),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2DD4BF)),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444).withOpacity(0.85),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'INSTANT PLAYBACK -30s',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
       ),
     );
@@ -662,21 +863,29 @@ class _LiveGridPageState extends State<LiveGridPage> {
               IconButton(
                 icon: const Icon(Icons.camera_alt_outlined, color: Colors.white),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Snapshot saved to gallery!')),
-                  );
+                  _showSnapshotPreviewDialog(camera?.name ?? 'Live Feed');
                 },
               ),
               // Instant Playback
               IconButton(
                 key: const Key('instantPlaybackButton'),
-                icon: const Icon(Icons.replay_30, color: Colors.white),
+                icon: Icon(
+                  Icons.replay_30,
+                  color: _instantPlaybackSlots[_selectedSlotIndex] ? const Color(0xFF2DD4BF) : Colors.white,
+                ),
                 tooltip: 'Instant Playback (30s rewind)',
                 onPressed: () {
+                  setState(() {
+                    _instantPlaybackSlots[_selectedSlotIndex] = !_instantPlaybackSlots[_selectedSlotIndex];
+                  });
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Playing last 30 seconds of recording in slot...'),
-                      duration: Duration(seconds: 2),
+                    SnackBar(
+                      content: Text(
+                        _instantPlaybackSlots[_selectedSlotIndex]
+                            ? 'Instant Playback Mode Engaged (Rewinding 30s)...'
+                            : 'Returned to Live feed.',
+                      ),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 },
