@@ -16,5 +16,8 @@
 - [x] Implement Haptic feedback click transitions inside TimelineScrubber on segment crossing
 - [x] Remove Card ACK button and implement details Bottom Sheet modal on AlarmListPage
 - [x] Validate Dropdown selector for Camera ID inside ExportPage
+- [x] Enable direct empty grid slot tap gesture action to immediately launch the Camera Picker Bottom Sheet
+- [x] Implement simulated glassmorphic PTZ D-pad overlay on selected camera grid tile when PTZ is toggled
+- [x] Add edge-AI IVA bounding box tracking overlay inside Alarm Details Bottom Sheet for active threats
 - [x] Update LoginPage and LiveGridPage widget test assertions and verify all tests pass successfully
 - [x] Push all changes to remote repository on branch `working`
