@@ -771,19 +771,35 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   });
                 },
               ),
-              // Grid Size Indicator Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white12,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  _layoutGridSize == 1 ? '[1]' : _layoutGridSize == 2 ? '[4]' : '[9]',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+              // Grid Size Indicator Badge (Tappable layout cyclist)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (_layoutGridSize == 1) {
+                      _layoutGridSize = 2;
+                    } else if (_layoutGridSize == 2) {
+                      _layoutGridSize = 3;
+                    } else {
+                      _layoutGridSize = 1;
+                    }
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2DD4BF).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: const Color(0xFF2DD4BF).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    _layoutGridSize == 1 ? '[1]' : _layoutGridSize == 2 ? '[4]' : '[9]',
+                    style: const TextStyle(
+                      color: Color(0xFF2DD4BF),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
