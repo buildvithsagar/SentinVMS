@@ -16,7 +16,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _customerIdController;
   late final TextEditingController _emailController;
@@ -33,6 +33,17 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   late final Animation<double> _logoRotation;
   late final Animation<double> _formOpacity;
   late final Animation<double> _formSlide;
+
+  // OTP transition animations
+  late final AnimationController _otpAnimController;
+  late final Animation<double> _otpTitleOpacity;
+  late final Animation<Offset> _otpTitleSlide;
+  late final Animation<double> _otpDescOpacity;
+  late final Animation<Offset> _otpDescSlide;
+  late final Animation<double> _otpFieldOpacity;
+  late final Animation<double> _otpFieldScale;
+  late final Animation<double> _otpButtonOpacity;
+  late final Animation<Offset> _otpButtonSlide;
 
   @override
   void initState() {
@@ -83,10 +94,69 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       ),
     );
 
+    // OTP transition controller (600ms staggered entrance)
+    _otpAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+
+    _otpTitleOpacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _otpAnimController,
+        curve: const Interval(0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+    _otpTitleSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _otpAnimController,
+        curve: const Interval(0, 0.4, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _otpDescOpacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _otpAnimController,
+        curve: const Interval(0.15, 0.55, curve: Curves.easeOut),
+      ),
+    );
+    _otpDescSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _otpAnimController,
+        curve: const Interval(0.15, 0.55, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _otpFieldOpacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _otpAnimController,
+        curve: const Interval(0.3, 0.7, curve: Curves.easeOut),
+      ),
+    );
+    _otpFieldScale = Tween<double>(begin: 0.85, end: 1).animate(
+      CurvedAnimation(
+        parent: _otpAnimController,
+        curve: const Interval(0.3, 0.7, curve: Curves.easeOutBack),
+      ),
+    );
+
+    _otpButtonOpacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _otpAnimController,
+        curve: const Interval(0.55, 1, curve: Curves.easeOut),
+      ),
+    );
+    _otpButtonSlide = Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _otpAnimController,
+        curve: const Interval(0.55, 1, curve: Curves.easeOutCubic),
+      ),
+    );
+
     if (!isTest) {
       _splashController.forward();
     } else {
       _splashController.value = 1.0;
+      _otpAnimController.value = 1.0;
     }
   }
 
@@ -97,6 +167,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     _passwordController.dispose();
     _totpController.dispose();
     _splashController.dispose();
+    _otpAnimController.dispose();
     super.dispose();
   }
 
@@ -172,6 +243,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 onPressed: context.read<LoginBloc>().state is LoginLoading
                     ? null
                     : () {
+                        _otpAnimController.reset();
                         setState(() {
                           _showOtpView = false;
                           _totpController.clear();
@@ -202,6 +274,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       _showOtpView = true;
                       _otpEmail = state.email;
                     });
+                    _otpAnimController.forward(from: 0);
                   }
                 },
                 builder: (context, state) {
@@ -414,85 +487,123 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                                 },
                                         ),
                                       ] else ...[
-                                        // OTP Verification View
-                                        const Text(
-                                          'MFA VERIFICATION CODE',
-                                          style: TextStyle(
-                                            color: Color(0xFF2DD4BF),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 2,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'Please enter the 6-digit OTP code sent to $_otpEmail',
-                                          style: const TextStyle(
-                                            color: Color(0xFF94A3B8),
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 20),
-                                        TextFormField(
-                                          key: const Key('otpField'),
-                                          controller: _totpController,
-                                          enabled: !isLoading,
-                                          textInputAction: TextInputAction.done,
-                                          keyboardType: TextInputType.number,
-                                          maxLength: 6,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 22,
-                                            letterSpacing: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          decoration: _buildInputDecoration(
-                                            '000000',
-                                            helper: 'Local bypass code: 000000',
-                                          ),
-                                          validator: (val) {
-                                            if (val == null || val.trim().isEmpty) {
-                                              return 'Verification code is required';
-                                            }
-                                            if (val.trim().length != 6 ||
-                                                int.tryParse(val.trim()) == null) {
-                                              return 'Please enter a 6-digit numeric code';
-                                            }
-                                            return null;
-                                          },
-                                          onFieldSubmitted: (_) {
-                                            if (_formKey.currentState?.validate() ?? false) {
-                                              context.read<LoginBloc>().add(
-                                                LoginOtpSubmitted(
-                                                  email: _otpEmail,
-                                                  otpCode: _totpController.text.trim(),
+                                        // OTP Verification View — Staggered Entrance Animation
+                                        AnimatedBuilder(
+                                          animation: _otpAnimController,
+                                          builder: (context, _) {
+                                            return Column(
+                                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                                              children: [
+                                                // 1. Title — fade + slide
+                                                SlideTransition(
+                                                  position: _otpTitleSlide,
+                                                  child: FadeTransition(
+                                                    opacity: _otpTitleOpacity,
+                                                    child: const Text(
+                                                      'MFA VERIFICATION CODE',
+                                                      style: TextStyle(
+                                                        color: Color(0xFF2DD4BF),
+                                                        fontSize: 12,
+                                                        fontWeight: FontWeight.bold,
+                                                        letterSpacing: 2,
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
-                                              );
-                                            }
+                                                const SizedBox(height: 8),
+
+                                                // 2. Description — fade + slide (staggered)
+                                                SlideTransition(
+                                                  position: _otpDescSlide,
+                                                  child: FadeTransition(
+                                                    opacity: _otpDescOpacity,
+                                                    child: Text(
+                                                      'Please enter the 6-digit OTP code sent to $_otpEmail',
+                                                      style: const TextStyle(
+                                                        color: Color(0xFF94A3B8),
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 20),
+
+                                                // 3. OTP Input — fade + scale pop
+                                                FadeTransition(
+                                                  opacity: _otpFieldOpacity,
+                                                  child: ScaleTransition(
+                                                    scale: _otpFieldScale,
+                                                    child: TextFormField(
+                                                      key: const Key('otpField'),
+                                                      controller: _totpController,
+                                                      enabled: !isLoading,
+                                                      textInputAction: TextInputAction.done,
+                                                      keyboardType: TextInputType.number,
+                                                      maxLength: 6,
+                                                      textAlign: TextAlign.center,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 22,
+                                                        letterSpacing: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                      decoration: _buildInputDecoration(
+                                                        '000000',
+                                                        helper: 'Local bypass code: 000000',
+                                                      ),
+                                                      validator: (val) {
+                                                        if (val == null || val.trim().isEmpty) {
+                                                          return 'Verification code is required';
+                                                        }
+                                                        if (val.trim().length != 6 ||
+                                                            int.tryParse(val.trim()) == null) {
+                                                          return 'Please enter a 6-digit numeric code';
+                                                        }
+                                                        return null;
+                                                      },
+                                                      onFieldSubmitted: (_) {
+                                                        if (_formKey.currentState?.validate() ?? false) {
+                                                          context.read<LoginBloc>().add(
+                                                            LoginOtpSubmitted(
+                                                              email: _otpEmail,
+                                                              otpCode: _totpController.text.trim(),
+                                                            ),
+                                                          );
+                                                        }
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 24),
+
+                                                // 4. Verify Button — fade + slide up
+                                                SlideTransition(
+                                                  position: _otpButtonSlide,
+                                                  child: FadeTransition(
+                                                    opacity: _otpButtonOpacity,
+                                                    child: _AnimatedSubmitButton(
+                                                      label: 'VERIFY CODE',
+                                                      isLoading: isLoading,
+                                                      onPressed: isLoading
+                                                          ? null
+                                                          : () {
+                                                              if (_formKey.currentState?.validate() ?? false) {
+                                                                context.read<LoginBloc>().add(
+                                                                      LoginOtpSubmitted(
+                                                                        email: _otpEmail,
+                                                                        otpCode: _totpController.text.trim(),
+                                                                      ),
+                                                                    );
+                                                              }
+                                                            },
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 12),
+                                              ],
+                                            );
                                           },
                                         ),
-                                        const SizedBox(height: 24),
-
-                                        // Verify OTP Button
-                                        _AnimatedSubmitButton(
-                                          label: 'VERIFY CODE',
-                                          isLoading: isLoading,
-                                          onPressed: isLoading
-                                              ? null
-                                              : () {
-                                                  if (_formKey.currentState?.validate() ?? false) {
-                                                    context.read<LoginBloc>().add(
-                                                          LoginOtpSubmitted(
-                                                            email: _otpEmail,
-                                                            otpCode: _totpController.text.trim(),
-                                                          ),
-                                                        );
-                                                  }
-                                                },
-                                        ),
-                                        const SizedBox(height: 12),
-
                                       ],
                                     ],
                                   ),
