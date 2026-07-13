@@ -516,8 +516,8 @@ class _LiveGridPageState extends State<LiveGridPage> {
     return GridView.count(
       crossAxisCount: 2,
       childAspectRatio: 16 / 9,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
+      mainAxisSpacing: 2,
+      crossAxisSpacing: 2,
       children: List.generate(4, _buildGridSlot),
     );
   }
@@ -526,8 +526,8 @@ class _LiveGridPageState extends State<LiveGridPage> {
     return GridView.count(
       crossAxisCount: 3,
       childAspectRatio: 16 / 9,
-      mainAxisSpacing: 6,
-      crossAxisSpacing: 6,
+      mainAxisSpacing: 2,
+      crossAxisSpacing: 2,
       children: List.generate(9, _buildGridSlot),
     );
   }

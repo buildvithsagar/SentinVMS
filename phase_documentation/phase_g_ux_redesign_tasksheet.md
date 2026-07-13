@@ -19,5 +19,6 @@
 - [x] Enable direct empty grid slot tap gesture action to immediately launch the Camera Picker Bottom Sheet
 - [x] Implement simulated glassmorphic PTZ D-pad overlay on selected camera grid tile when PTZ is toggled
 - [x] Add edge-AI IVA bounding box tracking overlay inside Alarm Details Bottom Sheet for active threats
+- [x] Redesign standard Navigation Drawer into a premium forest-green glassmorphic VmsDrawer that unifies all app routes and matches the Login branding
 - [x] Update LoginPage and LiveGridPage widget test assertions and verify all tests pass successfully
 - [x] Push all changes to remote repository on branch `working`
