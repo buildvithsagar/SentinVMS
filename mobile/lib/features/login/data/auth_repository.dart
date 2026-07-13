@@ -163,11 +163,14 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      await dio.post<void>('auth/logout');
-    } finally {
-      // Always clear local storage even if API call fails
       await storage.clearAll();
+    } catch (e) {
+      // Log storage clear errors but don't block
     }
+    // Fire-and-forget the remote logout call to avoid blocking on connection timeouts
+    dio.post<void>('auth/logout').catchError((Object err) {
+      // Ignore network errors on logout
+    });
   }
 
   String? _extractVmsRefreshCookie(List<String>? cookies) {
