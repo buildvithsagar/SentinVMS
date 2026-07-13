@@ -25,6 +25,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   bool _obscurePassword = true;
   bool _showOtpView = false;
+  bool _showVerified = false;
   String _otpEmail = '';
 
   late final AnimationController _splashController;
@@ -44,6 +45,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   late final Animation<double> _otpFieldScale;
   late final Animation<double> _otpButtonOpacity;
   late final Animation<Offset> _otpButtonSlide;
+
+  // Verified success animation
+  late final AnimationController _verifiedController;
+  late final Animation<double> _checkScale;
+  late final Animation<double> _checkOpacity;
+  late final Animation<double> _ringScale;
+  late final Animation<double> _verifiedTextOpacity;
 
   @override
   void initState() {
@@ -152,11 +160,49 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       ),
     );
 
+    // Verified success animation (1s total)
+    _verifiedController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _checkScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0, end: 1.3), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 50),
+    ]).animate(
+      CurvedAnimation(
+        parent: _verifiedController,
+        curve: const Interval(0, 0.6, curve: Curves.easeOutBack),
+      ),
+    );
+
+    _checkOpacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _verifiedController,
+        curve: const Interval(0, 0.3, curve: Curves.easeOut),
+      ),
+    );
+
+    _ringScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _verifiedController,
+        curve: const Interval(0, 0.5, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _verifiedTextOpacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _verifiedController,
+        curve: const Interval(0.4, 0.8, curve: Curves.easeOut),
+      ),
+    );
+
     if (!isTest) {
       _splashController.forward();
     } else {
       _splashController.value = 1.0;
       _otpAnimController.value = 1.0;
+      _verifiedController.value = 0.0;
     }
   }
 
@@ -168,6 +214,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     _totpController.dispose();
     _splashController.dispose();
     _otpAnimController.dispose();
+    _verifiedController.dispose();
     super.dispose();
   }
 
@@ -262,13 +309,21 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               child: BlocConsumer<LoginBloc, LoginState>(
                 listener: (context, state) {
                   if (state is LoginSuccess) {
-                    context.read<AuthBloc>().add(
+                    final authBloc = context.read<AuthBloc>();
+                    final router = GoRouter.of(context);
+                    // Show verified animation, then navigate
+                    setState(() => _showVerified = true);
+                    _verifiedController.forward(from: 0).then((_) {
+                      Future.delayed(const Duration(milliseconds: 800), () {
+                        authBloc.add(
                           AuthLoggedIn(
                             accessToken: state.accessToken,
                             user: state.user,
                           ),
                         );
-                    context.go('/live_grid');
+                        router.go('/live_grid');
+                      });
+                    });
                   } else if (state is LoginOtpRequired) {
                     setState(() {
                       _showOtpView = true;
@@ -279,6 +334,83 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 },
                 builder: (context, state) {
                   final isLoading = state is LoginLoading;
+
+                  // Full-screen verified overlay
+                  if (_showVerified) {
+                    return AnimatedBuilder(
+                      animation: _verifiedController,
+                      builder: (context, _) {
+                        return SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Glowing ring
+                              ScaleTransition(
+                                scale: _ringScale,
+                                child: FadeTransition(
+                                  opacity: _checkOpacity,
+                                  child: Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: const Color(0xFF2DD4BF).withValues(alpha: 0.4),
+                                        width: 3,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF2DD4BF).withValues(alpha: 0.2 * _checkOpacity.value),
+                                          blurRadius: 30,
+                                          spreadRadius: 5,
+                                        ),
+                                      ],
+                                    ),
+                                    // Checkmark inside the ring
+                                    child: ScaleTransition(
+                                      scale: _checkScale,
+                                      child: const Icon(
+                                        Icons.check_rounded,
+                                        color: Color(0xFF2DD4BF),
+                                        size: 56,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 28),
+                              // VERIFIED text
+                              FadeTransition(
+                                opacity: _verifiedTextOpacity,
+                                child: const Column(
+                                  children: [
+                                    Text(
+                                      'VERIFIED',
+                                      style: TextStyle(
+                                        color: Color(0xFF2DD4BF),
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 6,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Initializing secure session...',
+                                      style: TextStyle(
+                                        color: Color(0xFF94A3B8),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  }
 
                   return AnimatedBuilder(
                     animation: _splashController,
