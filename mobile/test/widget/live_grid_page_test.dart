@@ -66,7 +66,6 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
 
       expect(find.text('Live Viewport Grid'), findsOneWidget);
-      expect(find.text('Layout: 2x2 Grid (4 Feeds)'), findsOneWidget);
 
       expect(find.text('1'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
@@ -77,11 +76,12 @@ void main() {
     testWidgets('switching to 1x1 layout renders single slot focus', (tester) async {
       await tester.pumpWidget(buildTestWidget());
 
-      final toggle1x1 = find.byTooltip('1x1 View');
-      await tester.tap(toggle1x1);
+      final cycler = find.byKey(const Key('layoutCyclerButton'));
+      await tester.tap(cycler); // cycle to 3x3
+      await tester.pumpAndSettle();
+      await tester.tap(cycler); // cycle to 1x1
       await tester.pumpAndSettle();
 
-      expect(find.text('Layout: 1x1 Focus (Single Feed)'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.text('2'), findsNothing);
     });
@@ -126,11 +126,10 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(buildTestWidget());
 
-      final toggle3x3 = find.byTooltip('3x3 View');
-      await tester.tap(toggle3x3);
+      final cycler = find.byKey(const Key('layoutCyclerButton'));
+      await tester.tap(cycler); // cycle to 3x3
       await tester.pumpAndSettle();
 
-      expect(find.text('Layout: 3x3 Grid (9 Feeds)'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.text('9'), findsOneWidget);
     });

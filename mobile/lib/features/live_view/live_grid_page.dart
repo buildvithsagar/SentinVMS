@@ -358,68 +358,6 @@ class _LiveGridPageState extends State<LiveGridPage> {
         children: [
           Column(
             children: [
-              // Control Bar: Layout toggle and Quick Info
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _layoutGridSize == 1
-                          ? 'Layout: 1x1 Focus (Single Feed)'
-                          : _layoutGridSize == 2
-                              ? 'Layout: 2x2 Grid (4 Feeds)'
-                              : 'Layout: 3x3 Grid (9 Feeds)',
-                      style: const TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.rectangle_outlined,
-                            color: _layoutGridSize == 1 ? const Color(0xFF2DD4BF) : const Color(0xFF94A3B8),
-                          ),
-                          tooltip: '1x1 View',
-                          onPressed: () {
-                            setState(() {
-                              _layoutGridSize = 1;
-                            });
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.grid_view,
-                            color: _layoutGridSize == 2 ? const Color(0xFF2DD4BF) : const Color(0xFF94A3B8),
-                          ),
-                          tooltip: '2x2 View',
-                          onPressed: () {
-                            setState(() {
-                              _layoutGridSize = 2;
-                            });
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.grid_on,
-                            color: _layoutGridSize == 3 ? const Color(0xFF2DD4BF) : const Color(0xFF94A3B8),
-                          ),
-                          tooltip: '3x3 View',
-                          onPressed: () {
-                            setState(() {
-                              _layoutGridSize = 3;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
               // Main Viewport Area
               Expanded(
                 child: Padding(
@@ -773,6 +711,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
               ),
               // Grid Size Indicator Badge (Tappable layout cyclist)
               GestureDetector(
+                key: const Key('layoutCyclerButton'),
                 onTap: () {
                   setState(() {
                     if (_layoutGridSize == 1) {
