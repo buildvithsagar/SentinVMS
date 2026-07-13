@@ -15,6 +15,7 @@ import 'package:app/features/camera/bloc/camera_state.dart';
 import 'package:app/features/camera/data/camera_repository.dart';
 import 'package:app/features/camera/models/camera_model.dart';
 import 'package:app/features/live_view/widgets/video_tile.dart';
+import 'package:app/core/widgets/vms_drawer.dart';
 import 'package:app/features/login/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -233,16 +234,6 @@ class _LiveGridPageState extends State<LiveGridPage> {
     );
   }
 
-  Future<void> _handleLogout() async {
-    try {
-      await GetIt.instance<AuthRepository>().logout();
-    } finally {
-      if (mounted) {
-        context.read<AuthBloc>().add(const AuthLoggedOut());
-      }
-    }
-  }
-
   void _showCameraPicker(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -271,64 +262,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      drawer: Drawer(
-        backgroundColor: const Color(0xFF0F172A),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E293B),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.security,
-                    color: Color(0xFF2DD4BF),
-                    size: 48,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'SENTINEL VMS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Active Operator Session',
-                    style: TextStyle(
-                      color: const Color(0xFF94A3B8),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.grid_view, color: Color(0xFF2DD4BF)),
-              title: const Text('Live Grid Dashboard', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              key: const Key('drawerLogoutButton'),
-              leading: const Icon(Icons.logout, color: Color(0xFFEF4444)),
-              title: const Text('Logout', style: TextStyle(color: Color(0xFFEF4444))),
-              onTap: () async {
-                Navigator.pop(context);
-                await _handleLogout();
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: const VmsDrawer(currentRoute: '/live_grid'),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
