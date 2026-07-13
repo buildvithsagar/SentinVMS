@@ -58,6 +58,65 @@ class _CameraListPageState extends State<CameraListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
+      drawer: Drawer(
+        backgroundColor: const Color(0xFF0F172A),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                color: Color(0xFF1E293B),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.security,
+                    color: Color(0xFF2DD4BF),
+                    size: 48,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'SENTINEL VMS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Active Operator Session',
+                    style: TextStyle(
+                      color: const Color(0xFF94A3B8),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.grid_view, color: Color(0xFF2DD4BF)),
+              title: const Text('Live Grid Dashboard', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                context.go('/live_grid');
+              },
+            ),
+            ListTile(
+              key: const Key('drawerLogoutButtonCameras'),
+              leading: const Icon(Icons.logout, color: Color(0xFFEF4444)),
+              title: const Text('Logout', style: TextStyle(color: Color(0xFFEF4444))),
+              onTap: () async {
+                Navigator.pop(context);
+                await _handleLogout();
+              },
+            ),
+          ],
+        ),
+      ),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -76,13 +135,6 @@ class _CameraListPageState extends State<CameraListPage> {
             );
           },
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFF94A3B8)),
-            tooltip: 'Logout',
-            onPressed: _handleLogout,
-          ),
-        ],
       ),
       body: Column(
         children: [
