@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/services.dart';
 import 'package:app/core/auth/auth_bloc.dart';
 import 'package:app/core/auth/auth_event.dart';
 import 'package:app/core/video/decoder_pool.dart';
@@ -699,6 +700,122 @@ class _LiveGridPageState extends State<LiveGridPage> {
                               ),
                             ],
                           ),
+                        ),
+                      ),
+                    ),
+                  if (isSelected && _isPTZActive)
+                    Positioned(
+                      bottom: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              iconSize: 14,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.zoom_out, color: Colors.white70),
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('PTZ: Zooming Out on ${camera.name}'),
+                                    duration: const Duration(milliseconds: 600),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              iconSize: 14,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.arrow_left, color: Color(0xFF2DD4BF)),
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('PTZ: Panning Left on ${camera.name}'),
+                                    duration: const Duration(milliseconds: 600),
+                                  ),
+                                );
+                              },
+                            ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  iconSize: 14,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: const Icon(Icons.arrow_drop_up, color: Color(0xFF2DD4BF)),
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('PTZ: Tilting Up on ${camera.name}'),
+                                        duration: const Duration(milliseconds: 600),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 2),
+                                IconButton(
+                                  iconSize: 14,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2DD4BF)),
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('PTZ: Tilting Down on ${camera.name}'),
+                                        duration: const Duration(milliseconds: 600),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                            IconButton(
+                              iconSize: 14,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.arrow_right, color: Color(0xFF2DD4BF)),
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('PTZ: Panning Right on ${camera.name}'),
+                                    duration: const Duration(milliseconds: 600),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              iconSize: 14,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.zoom_in, color: Colors.white70),
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('PTZ: Zooming In on ${camera.name}'),
+                                    duration: const Duration(milliseconds: 600),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ),

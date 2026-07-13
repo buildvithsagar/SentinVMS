@@ -267,6 +267,38 @@ class _AlarmCard extends StatelessWidget {
                             ),
                           ],
                         ),
+                        if (alarm.isActive)
+                          Positioned(
+                            top: 25,
+                            left: 40,
+                            right: 40,
+                            bottom: 25,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: const Color(0xFFEF4444), width: 1.5),
+                              ),
+                              child: Stack(
+                                children: [
+                                  Positioned(
+                                    top: 0,
+                                    left: 0,
+                                    child: Container(
+                                      color: const Color(0xFFEF4444),
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                                      child: Text(
+                                        'IVA DETECTION: ${alarm.eventClass}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 7,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
