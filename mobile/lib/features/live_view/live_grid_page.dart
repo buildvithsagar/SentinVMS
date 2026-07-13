@@ -358,6 +358,82 @@ class _LiveGridPageState extends State<LiveGridPage> {
         children: [
           Column(
             children: [
+              // Top Slot status / Camera assign bar
+              Builder(
+                builder: (context) {
+                  final camera = _gridCameras[_selectedSlotIndex];
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: camera == null
+                        ? SizedBox(
+                            width: double.infinity,
+                            height: 38,
+                            child: ElevatedButton.icon(
+                              key: const Key('assignCameraButtonTop'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2563EB),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              icon: const Icon(Icons.add, size: 16, color: Colors.white),
+                              label: const Text(
+                                'Assign Camera to Selected Slot',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                              onPressed: () => _showCameraPicker(context),
+                            ),
+                          )
+                        : Container(
+                            height: 38,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.videocam, size: 16, color: Color(0xFF2DD4BF)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Slot ${_selectedSlotIndex + 1}: ${camera.name}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  icon: const Icon(Icons.swap_horiz, size: 14, color: Color(0xFF2DD4BF)),
+                                  label: const Text(
+                                    'Change',
+                                    style: TextStyle(
+                                      color: Color(0xFF2DD4BF),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  onPressed: () => _showCameraPicker(context),
+                                ),
+                              ],
+                            ),
+                          ),
+                  );
+                },
+              ),
+
               // Main Viewport Area
               Expanded(
                 child: Padding(
@@ -889,18 +965,6 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   ),
                 ],
               ),
-            ),
-          ] else ...[
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                minimumSize: Size.zero,
-              ),
-              icon: const Icon(Icons.add, size: 14),
-              label: const Text('Assign Camera to Selected Slot', style: TextStyle(fontSize: 11)),
-              onPressed: () => _showCameraPicker(context),
             ),
           ],
         ],
