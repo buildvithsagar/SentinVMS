@@ -250,7 +250,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
     }
 
     return Stack(
-      alignment: Alignment.bottomCenter,
+      alignment: Alignment.center,
       children: [
         GestureDetector(
           onTap: () {
@@ -269,14 +269,107 @@ class _PlaybackPageState extends State<PlaybackPage> {
             ),
           ),
         ),
-        if (!controller.value.isPlaying)
-          Center(
-            child: IconButton(
-              iconSize: 48,
-              icon: const Icon(Icons.play_arrow, color: Colors.white70),
-              onPressed: controller.play,
-            ),
+        // Top Toolbar Overlay
+        Positioned(
+          top: 8,
+          left: 8,
+          right: 8,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Snapshot button
+              IconButton(
+                key: const Key('playbackSnapshotButton'),
+                icon: const Icon(Icons.camera_alt, color: Colors.white70),
+                tooltip: 'Capture Frame',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Playback snapshot saved to gallery!')),
+                  );
+                },
+              ),
+              // Speed drop-down choice selector
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black45,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: DropdownButton<double>(
+                  key: const Key('playbackSpeedDropdown'),
+                  value: _currentSpeed,
+                  dropdownColor: const Color(0xFF1E293B),
+                  underline: const SizedBox(),
+                  icon: const Icon(Icons.speed, color: Colors.white70, size: 16),
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  items: [0.5, 1.0, 2.0, 4.0, 8.0, 16.0].map((speed) {
+                    return DropdownMenuItem<double>(
+                      value: speed,
+                      child: Text('${speed}x'),
+                    );
+                  }).toList(),
+                  onChanged: (speed) {
+                    if (speed != null) {
+                      setState(() {
+                        _currentSpeed = speed;
+                      });
+                      _videoController?.setPlaybackSpeed(speed);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Speed changed to ${speed}x'), duration: const Duration(seconds: 1)),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
+        ),
+        // Center Controls Overlay
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Skip 10s backward
+            IconButton(
+              key: const Key('rewind10sButton'),
+              iconSize: 36,
+              icon: const Icon(Icons.replay_10, color: Colors.white70),
+              onPressed: () {
+                if (_currentTime != null) {
+                  _seekToTime(_currentTime!.subtract(const Duration(seconds: 10)));
+                }
+              },
+            ),
+            const SizedBox(width: 16),
+            IconButton(
+              iconSize: 48,
+              icon: Icon(
+                controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                color: Colors.white70,
+              ),
+              onPressed: () {
+                setState(() {
+                  if (controller.value.isPlaying) {
+                    controller.pause();
+                  } else {
+                    controller.play();
+                  }
+                });
+              },
+            ),
+            const SizedBox(width: 16),
+            // Skip 10s forward
+            IconButton(
+              key: const Key('forward10sButton'),
+              iconSize: 36,
+              icon: const Icon(Icons.forward_10, color: Colors.white70),
+              onPressed: () {
+                if (_currentTime != null) {
+                  _seekToTime(_currentTime!.add(const Duration(seconds: 10)));
+                }
+              },
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -470,47 +563,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
                             currentTime: _currentTime,
                             onSeek: _seekToTime,
                           ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ── Speed control ─────────────────────────────────────────
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.12),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Playback Speed',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: PlaybackSpeedControl(
-                      currentSpeed: _currentSpeed,
-                      onSpeedChanged: (speed) {
-                        setState(() {
-                          _currentSpeed = speed;
-                        });
-                        _videoController?.setPlaybackSpeed(speed);
-                      },
-                    ),
-                  ),
-                ],
               ),
             ),
 

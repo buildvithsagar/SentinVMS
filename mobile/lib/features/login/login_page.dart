@@ -160,6 +160,26 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final isTest = Platform.environment.containsKey('FLUTTER_TEST');
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: _showOtpView
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                key: const Key('otpBackButton'),
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8)),
+                onPressed: context.read<LoginBloc>().state is LoginLoading
+                    ? null
+                    : () {
+                        setState(() {
+                          _showOtpView = false;
+                          _totpController.clear();
+                        });
+                        context.read<LoginBloc>().add(const LoginReset());
+                      },
+              ),
+            )
+          : null,
       body: _GlassmorphicBackground(
         child: Center(
           child: SingleChildScrollView(
@@ -472,24 +492,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                         ),
                                         const SizedBox(height: 12),
 
-                                        // Go Back Button
-                                        TextButton.icon(
-                                          onPressed: isLoading
-                                              ? null
-                                              : () {
-                                                  setState(() {
-                                                    _showOtpView = false;
-                                                    _totpController.clear();
-                                                  });
-                                                  // Clear BLoC failure states
-                                                  context.read<LoginBloc>().add(const LoginReset());
-                                                },
-                                          icon: const Icon(Icons.arrow_back, size: 16, color: Color(0xFF94A3B8)),
-                                          label: const Text(
-                                            'Back to login',
-                                            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                                          ),
-                                        ),
                                       ],
                                     ],
                                   ),

@@ -60,12 +60,38 @@ class _LiveGridPageState extends State<LiveGridPage> {
     });
   }
 
-  void _clearAllSlots() {
-    setState(() {
-      for (var i = 0; i < _gridCameras.length; i++) {
-        _gridCameras[i] = null;
-      }
-    });
+  void _confirmClearAllSlots() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Text('Clear All Feeds', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: const Text('Are you sure you want to clear all active camera streams?', style: TextStyle(color: Color(0xFF94A3B8))),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.white54)),
+            ),
+            TextButton(
+              key: const Key('confirmClearAllButton'),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                setState(() {
+                  for (var i = 0; i < _gridCameras.length; i++) {
+                    _gridCameras[i] = null;
+                  }
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('All viewports cleared.')),
+                );
+              },
+              child: const Text('CLEAR ALL', style: TextStyle(color: Color(0xFFEF4444))),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _handleLogout() async {
@@ -106,6 +132,108 @@ class _LiveGridPageState extends State<LiveGridPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
+      drawer: Drawer(
+        backgroundColor: const Color(0xFF0F172A),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                color: Color(0xFF1E293B),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.security,
+                    color: Color(0xFF2DD4BF),
+                    size: 48,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'SENTINEL VMS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Active Operator Session',
+                    style: TextStyle(
+                      color: const Color(0xFF94A3B8),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.grid_view, color: Color(0xFF2DD4BF)),
+              title: const Text('Live Grid Dashboard', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              key: const Key('drawerLogoutButton'),
+              leading: const Icon(Icons.logout, color: Color(0xFFEF4444)),
+              title: const Text('Logout', style: TextStyle(color: Color(0xFFEF4444))),
+              onTap: () async {
+                Navigator.pop(context);
+                await _handleLogout();
+              },
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        key: const Key('panicAlertButton'),
+        backgroundColor: const Color(0xFFEF4444),
+        child: const Icon(Icons.warning_amber_rounded, color: Colors.white),
+        onPressed: () {
+          showDialog<void>(
+            context: context,
+            builder: (dialogContext) {
+              return AlertDialog(
+                backgroundColor: const Color(0xFF1E293B),
+                title: const Text('EMERGENCY PANIC ALERT', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
+                content: const Text(
+                  'Select action to dispatch emergency protocols:',
+                  style: TextStyle(color: Colors.white),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Emergency Siren Triggered on Site!')),
+                      );
+                    },
+                    child: const Text('TRIGGER SIREN', style: TextStyle(color: Color(0xFFEF4444))),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Calling Security Control Room...')),
+                      );
+                    },
+                    child: const Text('CALL CONTROL ROOM', style: TextStyle(color: Color(0xFF2DD4BF))),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('CANCEL', style: TextStyle(color: Colors.white54)),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -119,14 +247,10 @@ class _LiveGridPageState extends State<LiveGridPage> {
         ),
         actions: [
           IconButton(
+            key: const Key('clearAllStreamsButton'),
             icon: const Icon(Icons.layers_clear, color: Color(0xFF94A3B8)),
             tooltip: 'Clear All Streams',
-            onPressed: _clearAllSlots,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFF94A3B8)),
-            tooltip: 'Logout',
-            onPressed: _handleLogout,
+            onPressed: _confirmClearAllSlots,
           ),
         ],
       ),
@@ -395,6 +519,16 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   setState(() {
                     _isQualityHD = !_isQualityHD;
                   });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _isQualityHD
+                            ? 'Switched to HD (Clear Stream)'
+                            : 'Switched to SD (Fluent Stream)',
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -528,6 +662,20 @@ class _LiveGridPageState extends State<LiveGridPage> {
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Snapshot saved to gallery!')),
+                  );
+                },
+              ),
+              // Instant Playback
+              IconButton(
+                key: const Key('instantPlaybackButton'),
+                icon: const Icon(Icons.replay_30, color: Colors.white),
+                tooltip: 'Instant Playback (30s rewind)',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Playing last 30 seconds of recording in slot...'),
+                      duration: Duration(seconds: 2),
+                    ),
                   );
                 },
               ),

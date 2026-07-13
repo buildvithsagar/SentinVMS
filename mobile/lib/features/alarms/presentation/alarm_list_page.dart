@@ -163,98 +163,225 @@ class _AlarmCard extends StatelessWidget {
     }
   }
 
+  void _showAlarmDetailModal(BuildContext context, Alarm alarm) {
+    final statusColor = alarm.isActive ? const Color(0xFFEF4444) : const Color(0xFF10B981);
+    
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (bottomSheetContext) {
+        return BlocProvider.value(
+          value: context.read<AlarmBloc>(),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      alarm.eventClass.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        alarm.isActive ? 'ACTIVE THREAT' : 'RESOLVED',
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Camera Name & Time Info
+                Row(
+                  children: [
+                    const Icon(Icons.videocam, color: Color(0xFF94A3B8), size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      alarm.cameraName,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, color: Color(0xFF94A3B8), size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      DateFormat('dd MMM yyyy, HH:mm:ss').format(alarm.timestamp),
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Mock Snapshot Frame
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: 0.15,
+                            child: GridPaper(
+                              color: statusColor,
+                              divisions: 2,
+                              subdivisions: 1,
+                            ),
+                          ),
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.image, color: statusColor.withOpacity(0.5), size: 36),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${alarm.eventClass} Alert Snapshot Frame',
+                              style: const TextStyle(color: Colors.white38, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Acknowledge Action Button
+                if (alarm.isActive)
+                  ElevatedButton.icon(
+                    key: const Key('modalAcknowledgeButton'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.check),
+                    label: const Text('ACKNOWLEDGE INCIDENT', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      context.read<AlarmBloc>().add(AlarmAcknowledged(alarmId: alarm.id));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Incident ${alarm.id} acknowledged successfully.')),
+                      );
+                    },
+                  )
+                else
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white10,
+                      foregroundColor: Colors.white38,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: null,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('ALARM RESOLVED & ACKNOWLEDGED'),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isActive = alarm.isActive;
     final statusColor =
         isActive ? const Color(0xFFEF4444) : const Color(0xFF10B981);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border(
-          left: BorderSide(
-            color: statusColor,
-            width: 3,
-          ),
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-          right: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            _iconForEventClass(alarm.eventClass),
-            color: statusColor,
-            size: 24,
+    return GestureDetector(
+      key: Key('alarmCard_${alarm.id}'),
+      onTap: () => _showAlarmDetailModal(context, alarm),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border(
+            left: BorderSide(
+              color: statusColor,
+              width: 3,
+            ),
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+            right: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
           ),
         ),
-        title: Text(
-          alarm.eventClass,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-            letterSpacing: 0.5,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
           ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            '${alarm.cameraName} • '
-            '${DateFormat('dd MMM yyyy, HH:mm').format(alarm.timestamp)}',
-            style: const TextStyle(
-              color: Color(0xFF94A3B8),
-              fontSize: 12,
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              _iconForEventClass(alarm.eventClass),
+              color: statusColor,
+              size: 24,
             ),
           ),
-        ),
-        trailing: isActive
-            ? TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF2563EB),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    side: const BorderSide(color: Color(0xFF2563EB)),
-                  ),
-                ),
-                onPressed: () {
-                  context
-                      .read<AlarmBloc>()
-                      .add(AlarmAcknowledged(alarmId: alarm.id));
-                },
-                child: const Text(
-                  'ACK',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-              )
-            : Icon(
-                Icons.check_circle,
-                color: const Color(0xFF10B981).withValues(alpha: 0.7),
-                size: 20,
+          title: Text(
+            alarm.eventClass,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              letterSpacing: 0.5,
+            ),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '${alarm.cameraName} • '
+              '${DateFormat('dd MMM yyyy, HH:mm').format(alarm.timestamp)}',
+              style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 12,
               ),
+            ),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right,
+            color: Color(0xFF94A3B8),
+          ),
+        ),
       ),
     );
   }

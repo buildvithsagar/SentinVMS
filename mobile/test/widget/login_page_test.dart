@@ -137,7 +137,7 @@ void main() {
       expect(find.text('Please enter the 6-digit OTP code sent to operator@demo.com'), findsOneWidget);
       expect(find.byKey(const Key('otpField')), findsOneWidget);
       expect(find.text('VERIFY CODE'), findsOneWidget);
-      expect(find.text('Back to login'), findsOneWidget);
+      expect(find.byKey(const Key('otpBackButton')), findsOneWidget);
       
       await customLoginBloc.close();
     });

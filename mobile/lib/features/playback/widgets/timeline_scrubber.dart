@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:app/features/playback/models/recording_segment_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// A color-coded 24-hour timeline scrubber that visualises recording segments
 /// and allows the user to seek by tapping or dragging.
@@ -38,6 +39,9 @@ class _TimelineScrubberState extends State<TimelineScrubber> {
   /// Horizontal padding reserved for time labels at the edges.
   static const double _horizontalPadding = 24;
 
+  /// Track if the playhead was in a recording segment during last seek update
+  bool _lastInSegment = false;
+
   /// Start of the day (00:00:00) for the given date.
   DateTime get _dayStart => DateTime(
         widget.date.year,
@@ -66,6 +70,21 @@ class _TimelineScrubberState extends State<TimelineScrubber> {
 
   void _handleSeek(double localDx, double fullWidth) {
     final seekTime = _offsetToTime(localDx, fullWidth);
+    
+    // Check if the seek time sits inside any active segment
+    bool isInSegment = false;
+    for (final seg in widget.segments) {
+      if (seekTime.isAfter(seg.startTime) && seekTime.isBefore(seg.endTime)) {
+        isInSegment = true;
+        break;
+      }
+    }
+
+    if (isInSegment != _lastInSegment) {
+      _lastInSegment = isInSegment;
+      HapticFeedback.lightImpact(); // Physically buzz the phone on crossover!
+    }
+
     widget.onSeek(seekTime);
   }
 
