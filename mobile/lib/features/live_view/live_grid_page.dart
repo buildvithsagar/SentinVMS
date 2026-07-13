@@ -611,7 +611,12 @@ class _LiveGridPageState extends State<LiveGridPage> {
     final isSelected = _selectedSlotIndex == index;
 
     return GestureDetector(
-      onTap: () => _selectSlot(index),
+      onTap: () {
+        _selectSlot(index);
+        if (camera == null) {
+          _showCameraPicker(context);
+        }
+      },
       child: _PulsingSelectionBorder(
         isSelected: isSelected,
         child: camera == null
