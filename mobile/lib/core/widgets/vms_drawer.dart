@@ -11,13 +11,11 @@ class VmsDrawer extends StatelessWidget {
   const VmsDrawer({required this.currentRoute, super.key});
   final String currentRoute;
 
-  Future<void> _handleLogout(BuildContext context) async {
+  Future<void> _handleLogout(AuthBloc authBloc) async {
     try {
       await GetIt.instance<AuthRepository>().logout();
     } finally {
-      if (context.mounted) {
-        context.read<AuthBloc>().add(const AuthLoggedOut());
-      }
+      authBloc.add(const AuthLoggedOut());
     }
   }
 
@@ -246,8 +244,9 @@ class VmsDrawer extends StatelessWidget {
             ),
           ),
           onTap: () async {
+            final authBloc = context.read<AuthBloc>();
             Navigator.pop(context);
-            await _handleLogout(context);
+            await _handleLogout(authBloc);
           },
         ),
       ),
