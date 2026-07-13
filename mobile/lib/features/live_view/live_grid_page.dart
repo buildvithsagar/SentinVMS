@@ -365,28 +365,26 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     child: camera == null
-                        ? SizedBox(
-                            width: double.infinity,
-                            height: 38,
-                            child: ElevatedButton.icon(
-                              key: const Key('assignCameraButtonTop'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2563EB),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
+                        ? ElevatedButton.icon(
+                            key: const Key('assignCameraButtonTop'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              minimumSize: const Size.fromHeight(46),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              icon: const Icon(Icons.add, size: 16, color: Colors.white),
-                              label: const Text(
-                                'Assign Camera to Selected Slot',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                              ),
-                              onPressed: () => _showCameraPicker(context),
+                              elevation: 0,
                             ),
+                            icon: const Icon(Icons.add, size: 16, color: Colors.white),
+                            label: const Text(
+                              'Assign Camera to Selected Slot',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            onPressed: () => _showCameraPicker(context),
                           )
                         : Container(
-                            height: 38,
+                            height: 44,
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.05),
