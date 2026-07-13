@@ -310,18 +310,18 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 listener: (context, state) {
                   if (state is LoginSuccess) {
                     final authBloc = context.read<AuthBloc>();
-                    final router = GoRouter.of(context);
-                    // Show verified animation, then navigate
+                    // Show verified animation, then let GoRouter redirect handle navigation
                     setState(() => _showVerified = true);
                     _verifiedController.forward(from: 0).then((_) {
                       Future.delayed(const Duration(milliseconds: 800), () {
+                        if (!mounted) return;
+                        // Emit AuthLoggedIn — GoRouter's redirect will auto-navigate to /live_grid
                         authBloc.add(
                           AuthLoggedIn(
                             accessToken: state.accessToken,
                             user: state.user,
                           ),
                         );
-                        router.go('/live_grid');
                       });
                     });
                   } else if (state is LoginOtpRequired) {
