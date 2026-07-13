@@ -8,7 +8,8 @@
 
 ## Key Changes
 - **LoginPage**: AppBar back button for OTP screen, removed bottom text button.
-- **LiveGridPage**: Built Navigation Drawer for secure logout, confirmation dialog for Clear All feeds, Instant Playback button, Quality Toggle SnackBar alerts, and a floating red Panic button with alert selections.
+- **LiveGridPage**: Built Navigation Drawer for secure logout, confirmation dialog for Clear All feeds, Instant Playback button, Quality Toggle SnackBar alerts, and a floating red Panic button.
+- **CameraListPage**: Removed Logout from AppBar and integrated matching Navigation Drawer for consistent VMS menu navigation.
 - **PlaybackPage**: Added Netflix-style overlaid controls inside player Stack containing speed dropdowns, snapshot triggers, 10s skip backward/forward controls, and removed obsolete bottom speed row.
 - **TimelineScrubber**: Added haptic click events (`HapticFeedback.lightImpact()`) triggered when scrubbing across active recording segments.
 - **AlarmListPage**: Removed card ACK button, configured card onTap to open details bottom sheet modal showing metadata, snapshot grid, and large Acknowledge button.

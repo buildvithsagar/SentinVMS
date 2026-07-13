@@ -1,6 +1,7 @@
 # Phase G Tasksheet - Completed Items
 
 - [x] Relocate Logout icon from AppBar to custom Navigation Drawer in LiveGridPage
+- [x] Relocate Logout icon from AppBar to custom Navigation Drawer in CameraListPage
 - [x] Add confirmation Dialog for "Clear All Layout" button in LiveGridPage
 - [x] Implement Instant Playback (30s rewind loop) inside LiveGridPage tile controls
 - [x] Implement Snapshot Capture icon button in LiveGridPage tile controls
