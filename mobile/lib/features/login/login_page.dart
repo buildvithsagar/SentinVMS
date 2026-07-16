@@ -6,6 +6,7 @@ import 'package:app/features/login/bloc/login_event.dart';
 import 'package:app/features/login/bloc/login_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 /// Redesigned premium dark tactical industrial Login Page.
@@ -280,7 +281,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       extendBodyBehindAppBar: true,
-      appBar: _showOtpView
+      appBar: (_showOtpView && !_showVerified)
           ? AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
@@ -309,19 +310,26 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               child: BlocConsumer<LoginBloc, LoginState>(
                 listener: (context, state) {
                   if (state is LoginSuccess) {
-                    final authBloc = context.read<AuthBloc>();
-                    // Show verified animation, then let GoRouter redirect handle navigation
+                    // Capture references before any async gap
+                    final accessToken = state.accessToken;
+                    final user = state.user;
+                    // Show verified animation, then navigate
                     setState(() => _showVerified = true);
                     _verifiedController.forward(from: 0).then((_) {
                       Future.delayed(const Duration(milliseconds: 800), () {
                         if (!mounted) return;
-                        // Emit AuthLoggedIn — GoRouter's redirect will auto-navigate to /live_grid
-                        authBloc.add(
-                          AuthLoggedIn(
-                            accessToken: state.accessToken,
-                            user: state.user,
-                          ),
-                        );
+                        // Use addPostFrameCallback to ensure navigation happens
+                        // after the current frame is complete, preventing
+                        // InheritedWidget disposal race conditions
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) return;
+                          GetIt.instance<AuthBloc>().add(
+                            AuthLoggedIn(
+                              accessToken: accessToken,
+                              user: user,
+                            ),
+                          );
+                        });
                       });
                     });
                   } else if (state is LoginOtpRequired) {
