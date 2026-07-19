@@ -4,7 +4,6 @@ import 'package:app/features/camera/data/camera_repository.dart';
 import 'package:app/features/camera/models/camera_model.dart';
 import 'package:app/features/playback/data/playback_repository.dart';
 import 'package:app/features/playback/models/recording_segment_model.dart';
-import 'package:app/features/playback/widgets/playback_speed_control.dart';
 import 'package:app/features/playback/widgets/timeline_scrubber.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';

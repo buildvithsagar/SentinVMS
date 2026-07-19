@@ -1,8 +1,5 @@
-import 'package:app/core/auth/auth_bloc.dart';
-import 'package:app/core/auth/auth_state.dart';
 import 'package:app/features/playback/models/recording_segment_model.dart';
 import 'package:dio/dio.dart';
-import 'package:get_it/get_it.dart';
 
 class PlaybackRepository {
   PlaybackRepository({
@@ -18,69 +15,34 @@ class PlaybackRepository {
     required String cameraId,
     required DateTime date,
   }) async {
-    if (GetIt.instance.isRegistered<AuthBloc>()) {
-      final authState = GetIt.instance<AuthBloc>().state;
-      if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
-      final day = DateTime(date.year, date.month, date.day);
-      return [
-        RecordingSegment(
-          id: 'seg-001',
-          siteId: siteId,
-          cameraId: cameraId,
-          startTime: day.add(const Duration(hours: 2)),
-          endTime: day.add(const Duration(hours: 6)),
-          type: 'CONTINUOUS',
-        ),
-        RecordingSegment(
-          id: 'seg-002',
-          siteId: siteId,
-          cameraId: cameraId,
-          startTime: day.add(const Duration(hours: 9, minutes: 30)),
-          endTime: day.add(const Duration(hours: 11, minutes: 15)),
-          type: 'MOTION',
-        ),
-        RecordingSegment(
-          id: 'seg-003',
-          siteId: siteId,
-          cameraId: cameraId,
-          startTime: day.add(const Duration(hours: 15)),
-          endTime: day.add(const Duration(hours: 19, minutes: 45)),
-          type: 'SCHEDULED',
-        ),
-      ];
-    }
-    }
-
-    try {
-      final response = await dio.get<Map<String, dynamic>>(
-        'recordings/timeline',
-        queryParameters: <String, dynamic>{
-          'site_id': siteId,
-          'camera_id': cameraId,
-          'date': date.toIso8601String().split('T').first,
-        },
-      );
-
-      final data = response.data;
-      if (data == null) {
-        throw const PlaybackException('Received empty response from server');
-      }
-
-      final list = data['segments'] as List<dynamic>? ?? data['data'] as List<dynamic>?;
-      if (list == null) {
-        throw const PlaybackException('Missing segments array in response');
-      }
-
-      return list
-          .map(
-            (json) => RecordingSegment.fromJson(json as Map<String, dynamic>),
-          )
-          .toList();
-    } on DioException catch (e) {
-      throw PlaybackException(
-        e.message ?? 'Failed to load recording segments',
-      );
-    }
+    // Detached from backend: Return mock timeline segments instantly
+    final day = DateTime(date.year, date.month, date.day);
+    return [
+      RecordingSegment(
+        id: 'seg-001',
+        siteId: siteId,
+        cameraId: cameraId,
+        startTime: day.add(const Duration(hours: 2)),
+        endTime: day.add(const Duration(hours: 6)),
+        type: 'CONTINUOUS',
+      ),
+      RecordingSegment(
+        id: 'seg-002',
+        siteId: siteId,
+        cameraId: cameraId,
+        startTime: day.add(const Duration(hours: 9, minutes: 30)),
+        endTime: day.add(const Duration(hours: 11, minutes: 15)),
+        type: 'MOTION',
+      ),
+      RecordingSegment(
+        id: 'seg-003',
+        siteId: siteId,
+        cameraId: cameraId,
+        startTime: day.add(const Duration(hours: 15)),
+        endTime: day.add(const Duration(hours: 19, minutes: 45)),
+        type: 'SCHEDULED',
+      ),
+    ];
   }
 
   /// Fetches a signed HLS playback URL for recorded footage starting at
@@ -90,36 +52,8 @@ class PlaybackRepository {
     required String cameraId,
     required DateTime startTime,
   }) async {
-    if (GetIt.instance.isRegistered<AuthBloc>()) {
-      final authState = GetIt.instance<AuthBloc>().state;
-      if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
-        return 'https://playertest.longtailvideo.com/adaptive/oceans/oceans.m3u8';
-      }
-    }
-
-    try {
-      final response = await dio.post<Map<String, dynamic>>(
-        'recordings/playback-session',
-        data: <String, dynamic>{
-          'cameraId': cameraId,
-          'startTime': startTime.toIso8601String(),
-        },
-      );
-
-      final data = response.data;
-      if (data == null) {
-        throw const PlaybackException('Received empty response from server');
-      }
-
-      final streamUri = data['streamUri'] as String? ?? data['hlsUrl'] as String?;
-      if (streamUri == null || streamUri.trim().isEmpty) {
-        throw const PlaybackException('Response missing playback URL');
-      }
-
-      return streamUri;
-    } on DioException catch (e) {
-      throw PlaybackException(e.message ?? 'Failed to load playback URL');
-    }
+    // Detached from backend: Return mock video stream URL instantly
+    return 'https://playertest.longtailvideo.com/adaptive/oceans/oceans.m3u8';
   }
 }
 

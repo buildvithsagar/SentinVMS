@@ -362,56 +362,68 @@ class _AlarmCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
-          border: Border(
-            left: BorderSide(
-              color: statusColor,
-              width: 3,
-            ),
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-            right: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.12),
           ),
         ),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 8,
-          ),
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  color: statusColor,
+                ),
+                Expanded(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _iconForEventClass(alarm.eventClass),
+                          color: statusColor,
+                          size: 24,
+                        ),
+                      ),
+                      title: Text(
+                        alarm.eventClass,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '${alarm.cameraName} • '
+                          '${DateFormat('dd MMM yyyy, HH:mm').format(alarm.timestamp)}',
+                          style: const TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            child: Icon(
-              _iconForEventClass(alarm.eventClass),
-              color: statusColor,
-              size: 24,
-            ),
-          ),
-          title: Text(
-            alarm.eventClass,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              letterSpacing: 0.5,
-            ),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              '${alarm.cameraName} • '
-              '${DateFormat('dd MMM yyyy, HH:mm').format(alarm.timestamp)}',
-              style: const TextStyle(
-                color: Color(0xFF94A3B8),
-                fontSize: 12,
-              ),
-            ),
-          ),
-          trailing: const Icon(
-            Icons.chevron_right,
-            color: Color(0xFF94A3B8),
           ),
         ),
       ),

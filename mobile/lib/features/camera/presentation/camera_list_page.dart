@@ -1,17 +1,14 @@
 import 'dart:ui';
 
 import 'package:app/core/auth/auth_bloc.dart';
-import 'package:app/core/auth/auth_event.dart';
 import 'package:app/core/auth/auth_state.dart';
+import 'package:app/core/widgets/vms_drawer.dart';
 import 'package:app/features/camera/bloc/camera_bloc.dart';
 import 'package:app/features/camera/bloc/camera_event.dart';
 import 'package:app/features/camera/bloc/camera_state.dart';
 import 'package:app/features/camera/models/camera_model.dart';
-import 'package:app/core/widgets/vms_drawer.dart';
-import 'package:app/features/login/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 class CameraListPage extends StatefulWidget {
@@ -68,6 +65,12 @@ class _CameraListPageState extends State<CameraListPage> {
             );
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.white),
+            onPressed: () => context.push('/onboard'),
+          ),
+        ],
       ),
       body: Column(
         children: [

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:app/core/auth/auth_bloc.dart';
 import 'package:app/core/constants/app_constants.dart';
+import 'package:app/core/network/dio_retry_interceptor.dart';
 import 'package:app/core/network/refresh_token_interceptor.dart';
 import 'package:app/core/storage/secure_storage_service.dart';
 import 'package:dio/dio.dart';
@@ -64,6 +65,7 @@ class DioFactory {
     // Add interceptors
     dio.interceptors.addAll([
       RefreshTokenInterceptor(storage: storage, dio: dio, authBloc: authBloc),
+      DioRetryInterceptor(dio: dio),
       // Never log sensitive raw token bytes to console output
       LogInterceptor(requestHeader: false, responseHeader: false),
     ]);

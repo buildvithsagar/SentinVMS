@@ -8,6 +8,8 @@ import 'package:app/features/alarms/presentation/alarm_list_page.dart';
 import 'package:app/features/camera/bloc/camera_bloc.dart';
 import 'package:app/features/camera/data/camera_repository.dart';
 import 'package:app/features/camera/presentation/camera_list_page.dart';
+import 'package:app/features/device_onboarding/presentation/device_category_page.dart';
+import 'package:app/features/device_onboarding/presentation/device_details_form_page.dart';
 import 'package:app/features/export/presentation/export_page.dart';
 import 'package:app/features/live_view/live_grid_page.dart';
 import 'package:app/features/login/bloc/login_bloc.dart';
@@ -23,7 +25,7 @@ import 'package:go_router/go_router.dart';
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
-    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+    _subscription = stream.listen((_) => notifyListeners());
   }
 
   late final StreamSubscription<dynamic> _subscription;
@@ -119,6 +121,25 @@ class AppRouter {
         path: '/exports',
         builder: (BuildContext context, GoRouterState state) {
           return const ExportPage();
+        },
+      ),
+      GoRoute(
+        path: '/onboard',
+        builder: (BuildContext context, GoRouterState state) {
+          return const DeviceCategoryPage();
+        },
+      ),
+      GoRoute(
+        path: '/onboard/register',
+        builder: (BuildContext context, GoRouterState state) {
+          final category = state.uri.queryParameters['category'] ?? '';
+          final mode = state.uri.queryParameters['mode'] ?? 'insta_on';
+          final autoStartScan = state.uri.queryParameters['scan'] == 'true';
+          return DeviceDetailsFormPage(
+            category: category,
+            mode: mode,
+            autoStartScan: autoStartScan,
+          );
         },
       ),
     ],

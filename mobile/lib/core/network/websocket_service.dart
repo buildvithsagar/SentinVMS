@@ -70,7 +70,7 @@ class WebSocketService {
         .setTransports(['websocket'])
         .setPath('/ws/v5/telemetry')
         .setAuth({'token': _currentAccessToken})
-        .enableAutoConnect()
+        .disableReconnection()
         .build());
 
       _socket!.onConnect((_) {
@@ -85,7 +85,7 @@ class WebSocketService {
       });
 
       _socket!.onConnectError((err) {
-        _logger.e('Socket.io connection error: $err');
+        // Handle socket connection silently in offline/detached mode
         _updateStatus(WebSocketStatus.disconnected);
       });
 

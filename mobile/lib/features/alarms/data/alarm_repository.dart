@@ -13,10 +13,11 @@ class AlarmRepository {
 
   /// Fetches alarms with optional filters for site and status.
   Future<List<Alarm>> getAlarms({String? siteId, String? status}) async {
-    if (GetIt.instance.isRegistered<AuthBloc>()) {
-      final authState = GetIt.instance<AuthBloc>().state;
-      if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
-      return [
+    // Detached from backend: Return mock alarms instantly
+    return _demoAlarms;
+  }
+
+  List<Alarm> get _demoAlarms => [
         Alarm(
           id: 'alarm-001',
           siteId: 'site-001',
@@ -48,34 +49,6 @@ class AlarmRepository {
           status: 'ACTIVE',
         ),
       ];
-    }
-    }
-    try {
-      final response = await dio.get<Map<String, dynamic>>(
-        'events',
-        queryParameters: <String, dynamic>{
-          if (siteId != null) 'siteId': siteId,
-          if (status != null) 'status': status,
-        },
-      );
-
-      final data = response.data;
-      if (data == null) {
-        throw const AlarmException('Received empty response from server');
-      }
-
-      final list = data['data'] as List<dynamic>?;
-      if (list == null) {
-        throw const AlarmException('Missing data array in response');
-      }
-
-      return list
-          .map((json) => Alarm.fromJson(json as Map<String, dynamic>))
-          .toList();
-    } on DioException catch (e) {
-      throw AlarmException(e.message ?? 'Failed to load alarms');
-    }
-  }
 
   /// Acknowledges an alarm by its ID.
   /// Returns the updated Alarm with ACKNOWLEDGED status.

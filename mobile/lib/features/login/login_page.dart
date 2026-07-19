@@ -173,7 +173,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     ]).animate(
       CurvedAnimation(
         parent: _verifiedController,
-        curve: const Interval(0, 0.6, curve: Curves.easeOutBack),
+        curve: const Interval(0, 0.6, curve: Curves.easeOutCubic),
       ),
     );
 
@@ -310,27 +310,29 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               child: BlocConsumer<LoginBloc, LoginState>(
                 listener: (context, state) {
                   if (state is LoginSuccess) {
-                    // Capture references before any async gap
                     final accessToken = state.accessToken;
                     final user = state.user;
-                    // Show verified animation, then navigate
                     setState(() => _showVerified = true);
                     _verifiedController.forward(from: 0).then((_) {
-                      Future.delayed(const Duration(milliseconds: 800), () {
+                      Future.delayed(const Duration(milliseconds: 300), () {
                         if (!mounted) return;
-                        // Use addPostFrameCallback to ensure navigation happens
-                        // after the current frame is complete, preventing
-                        // InheritedWidget disposal race conditions
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!mounted) return;
-                          GetIt.instance<AuthBloc>().add(
-                            AuthLoggedIn(
-                              accessToken: accessToken,
-                              user: user,
-                            ),
-                          );
-                        });
+                        GetIt.instance<AuthBloc>().add(
+                          AuthLoggedIn(
+                            accessToken: accessToken,
+                            user: user,
+                          ),
+                        );
+                        context.go('/live_grid');
                       });
+                    }).catchError((_) {
+                      if (!mounted) return;
+                      GetIt.instance<AuthBloc>().add(
+                        AuthLoggedIn(
+                          accessToken: accessToken,
+                          user: user,
+                        ),
+                      );
+                      context.go('/live_grid');
                     });
                   } else if (state is LoginOtpRequired) {
                     setState(() {

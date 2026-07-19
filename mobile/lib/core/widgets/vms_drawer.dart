@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/auth/auth_bloc.dart';
@@ -10,14 +9,6 @@ import 'package:app/features/login/data/auth_repository.dart';
 class VmsDrawer extends StatelessWidget {
   const VmsDrawer({required this.currentRoute, super.key});
   final String currentRoute;
-
-  Future<void> _handleLogout(AuthBloc authBloc) async {
-    try {
-      await GetIt.instance<AuthRepository>().logout();
-    } finally {
-      authBloc.add(const AuthLoggedOut());
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,25 +188,28 @@ class VmsDrawer extends StatelessWidget {
             color: isActive ? const Color(0xFF2DD4BF).withOpacity(0.2) : Colors.transparent,
           ),
         ),
-        child: ListTile(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          leading: Icon(icon, color: isActive ? const Color(0xFF2DD4BF) : Colors.white70),
-          title: Text(
-            title,
-            style: TextStyle(
-              color: isActive ? Colors.white : Colors.white70,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-              fontSize: 13,
+        child: Material(
+          color: Colors.transparent,
+          child: ListTile(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
+            leading: Icon(icon, color: isActive ? const Color(0xFF2DD4BF) : Colors.white70),
+            title: Text(
+              title,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.white70,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                fontSize: 13,
+              ),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              if (!isActive) {
+                context.go(route);
+              }
+            },
           ),
-          onTap: () {
-            Navigator.pop(context);
-            if (!isActive) {
-              context.go(route);
-            }
-          },
         ),
       ),
     );
@@ -229,25 +223,28 @@ class VmsDrawer extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           color: Colors.white.withOpacity(0.01),
         ),
-        child: ListTile(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          key: const Key('drawerLogoutButton'),
-          leading: const Icon(Icons.logout, color: Color(0xFFEF4444)),
-          title: const Text(
-            'Logout',
-            style: TextStyle(
-              color: Color(0xFFEF4444),
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
+        child: Material(
+          color: Colors.transparent,
+          child: ListTile(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
+            key: const Key('drawerLogoutButton'),
+            leading: const Icon(Icons.logout, color: Color(0xFFEF4444)),
+            title: const Text(
+              'Logout',
+              style: TextStyle(
+                color: Color(0xFFEF4444),
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              GetIt.instance<AuthRepository>().logout();
+              GetIt.instance<AuthBloc>().add(const AuthLoggedOut());
+            },
           ),
-          onTap: () async {
-            final authBloc = context.read<AuthBloc>();
-            Navigator.pop(context);
-            await _handleLogout(authBloc);
-          },
         ),
       ),
     );
