@@ -6,10 +6,9 @@ enum ConnectivityStatus { online, offline }
 
 class ConnectivityService {
   ConnectivityService({
-    Duration checkInterval = const Duration(seconds: 10),
+    this._checkInterval = const Duration(seconds: 10),
     Logger? logger,
-  })  : _checkInterval = checkInterval,
-        _logger = logger ?? Logger() {
+  })  : _logger = logger ?? Logger() {
     _init();
   }
 

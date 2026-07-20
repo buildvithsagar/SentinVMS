@@ -40,7 +40,7 @@ class OnboardingModeSheet extends StatelessWidget {
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: mutedText.withOpacity(0.3),
+              color: mutedText.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -51,7 +51,7 @@ class OnboardingModeSheet extends StatelessWidget {
               color: mutedText,
               fontWeight: FontWeight.bold,
               fontSize: 11,
-              letterSpacing: 1.0,
+              letterSpacing: 1,
             ),
           ),
           const SizedBox(height: 16),
@@ -59,10 +59,11 @@ class OnboardingModeSheet extends StatelessWidget {
             icon: Icons.qr_code_scanner,
             title: 'Scan QR ID / InstaOn',
             onTap: () {
-              context.pop(); // Dismiss sheet
-              context.push(
-                '/onboard/register?category=$category&mode=insta_on&scan=true',
-              );
+              context
+                ..pop()
+                ..push(
+                  '/onboard/register?category=$category&mode=insta_on&scan=true',
+                );
             },
           ),
           const SizedBox(height: 10),
@@ -70,10 +71,11 @@ class OnboardingModeSheet extends StatelessWidget {
             icon: Icons.dns,
             title: 'IP/Domain (Manual entry)',
             onTap: () {
-              context.pop(); // Dismiss sheet
-              context.push(
-                '/onboard/register?category=$category&mode=ip_domain',
-              );
+              context
+                ..pop()
+                ..push(
+                  '/onboard/register?category=$category&mode=ip_domain',
+                );
             },
           ),
           const SizedBox(height: 10),

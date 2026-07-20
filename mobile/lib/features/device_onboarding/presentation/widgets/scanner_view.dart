@@ -28,14 +28,14 @@ class _ScannerViewState extends State<ScannerView> {
     return Scaffold(
       backgroundColor: primaryBg,
       appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(0.4),
+        backgroundColor: Colors.black.withValues(alpha: 0.4),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: primaryText),
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Scan QR Code',
+          'Scan QR / Barcode',
           style: TextStyle(color: primaryText, fontWeight: FontWeight.w600),
         ),
       ),
@@ -74,7 +74,7 @@ class _ScannerViewState extends State<ScannerView> {
         // Dark translucent backgrounds surrounding target area
         ColorFiltered(
           colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.6),
+            Colors.black.withValues(alpha: 0.6),
             BlendMode.srcOut,
           ),
           child: Stack(
@@ -86,7 +86,6 @@ class _ScannerViewState extends State<ScannerView> {
                 ),
               ),
               Align(
-                alignment: Alignment.center,
                 child: Container(
                   width: scanAreaSize,
                   height: scanAreaSize,
@@ -101,7 +100,6 @@ class _ScannerViewState extends State<ScannerView> {
         ),
         // Target Box corners decoration
         Align(
-          alignment: Alignment.center,
           child: SizedBox(
             width: scanAreaSize,
             height: scanAreaSize,
@@ -117,7 +115,7 @@ class _ScannerViewState extends State<ScannerView> {
           right: 0,
           child: Center(
             child: Text(
-              'Align QR code inside the frame to scan',
+              'Align QR / Barcode inside the frame to scan',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 14,
@@ -153,40 +151,38 @@ class _ScannerTargetPainter extends CustomPainter {
     final h = size.height;
 
     // Top-Left corner
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, cornerLength)
-        ..lineTo(0, 0)
-        ..lineTo(cornerLength, 0),
-      paint,
-    );
-
-    // Top-Right corner
-    canvas.drawPath(
-      Path()
-        ..moveTo(w - cornerLength, 0)
-        ..lineTo(w, 0)
-        ..lineTo(w, cornerLength),
-      paint,
-    );
-
-    // Bottom-Left corner
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, h - cornerLength)
-        ..lineTo(0, h)
-        ..lineTo(cornerLength, h),
-      paint,
-    );
-
-    // Bottom-Right corner
-    canvas.drawPath(
-      Path()
-        ..moveTo(w - cornerLength, h)
-        ..lineTo(w, h)
-        ..lineTo(w, h - cornerLength),
-      paint,
-    );
+    canvas
+      ..drawPath(
+        Path()
+          ..moveTo(0, cornerLength)
+          ..lineTo(0, 0)
+          ..lineTo(cornerLength, 0),
+        paint,
+      )
+      // Top-Right corner
+      ..drawPath(
+        Path()
+          ..moveTo(w - cornerLength, 0)
+          ..lineTo(w, 0)
+          ..lineTo(w, cornerLength),
+        paint,
+      )
+      // Bottom-Left corner
+      ..drawPath(
+        Path()
+          ..moveTo(0, h - cornerLength)
+          ..lineTo(0, h)
+          ..lineTo(cornerLength, h),
+        paint,
+      )
+      // Bottom-Right corner
+      ..drawPath(
+        Path()
+          ..moveTo(w - cornerLength, h)
+          ..lineTo(w, h)
+          ..lineTo(w, h - cornerLength),
+        paint,
+      );
   }
 
   @override

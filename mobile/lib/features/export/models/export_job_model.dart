@@ -12,6 +12,9 @@ class ExportJob extends Equatable {
     this.downloadUrl,
     this.progress,
     this.createdAt,
+    this.sha256Hash,
+    this.watermarked = true,
+    this.format = 'MP4',
   });
 
   factory ExportJob.fromJson(Map<String, dynamic> json) {
@@ -29,6 +32,9 @@ class ExportJob extends Equatable {
       downloadUrl: json['download_url'] as String? ?? json['downloadUrl'] as String?,
       progress: (json['progress'] as num?)?.toDouble() ?? (json['status'] == 'COMPLETE' || json['status'] == 'COMPLETED' ? 1.0 : 0.0),
       createdAt: createdAtStr != null ? DateTime.parse(createdAtStr) : null,
+      sha256Hash: json['sha256Hash'] as String? ?? json['sha256_hash'] as String?,
+      watermarked: json['watermarked'] as bool? ?? true,
+      format: json['format'] as String? ?? 'MP4',
     );
   }
 
@@ -43,6 +49,9 @@ class ExportJob extends Equatable {
   final String? downloadUrl;
   final double? progress;
   final DateTime? createdAt;
+  final String? sha256Hash;
+  final bool watermarked;
+  final String format;
 
   bool get isCompleted => status == 'COMPLETED' || status == 'COMPLETE';
   bool get isFailed => status == 'FAILED';
@@ -58,6 +67,9 @@ class ExportJob extends Equatable {
     String? downloadUrl,
     double? progress,
     DateTime? createdAt,
+    String? sha256Hash,
+    bool? watermarked,
+    String? format,
   }) {
     return ExportJob(
       id: id ?? this.id,
@@ -69,6 +81,9 @@ class ExportJob extends Equatable {
       downloadUrl: downloadUrl ?? this.downloadUrl,
       progress: progress ?? this.progress,
       createdAt: createdAt ?? this.createdAt,
+      sha256Hash: sha256Hash ?? this.sha256Hash,
+      watermarked: watermarked ?? this.watermarked,
+      format: format ?? this.format,
     );
   }
 
@@ -83,6 +98,9 @@ class ExportJob extends Equatable {
       'downloadUrl': downloadUrl,
       'progress': progress,
       'createdAt': createdAt?.toIso8601String(),
+      'sha256Hash': sha256Hash,
+      'watermarked': watermarked,
+      'format': format,
     };
   }
 
@@ -97,5 +115,8 @@ class ExportJob extends Equatable {
         downloadUrl,
         progress,
         createdAt,
+        sha256Hash,
+        watermarked,
+        format,
       ];
 }

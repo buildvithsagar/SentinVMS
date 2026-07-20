@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app/core/auth/user_profile.dart';
 import 'package:app/core/storage/secure_storage_service.dart';
 import 'package:dio/dio.dart';
@@ -71,13 +73,14 @@ class AuthRepository {
     }
     // Fire-and-forget the remote logout call to avoid blocking on connection timeouts
     try {
-      dio.post<void>('auth/logout').catchError((Object err) {
-        return Response<void>(requestOptions: RequestOptions(path: 'auth/logout'));
-      });
+      unawaited(
+        dio.post<void>('auth/logout').catchError((Object err) {
+          return Response<void>(requestOptions: RequestOptions(path: 'auth/logout'));
+        }),
+      );
     } catch (_) {}
   }
-
-  }
+}
 
 class UnauthorizedException implements Exception {
   const UnauthorizedException();

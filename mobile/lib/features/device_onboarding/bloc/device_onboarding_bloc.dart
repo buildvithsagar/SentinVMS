@@ -1,6 +1,6 @@
 import 'package:app/features/device_onboarding/data/device_onboarding_repository.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 // --- Events ---
 abstract class DeviceOnboardingEvent extends Equatable {
@@ -75,9 +75,8 @@ class DeviceOnboardingFailure extends DeviceOnboardingState {
 class DeviceOnboardingBloc
     extends Bloc<DeviceOnboardingEvent, DeviceOnboardingState> {
   DeviceOnboardingBloc({
-    required DeviceOnboardingRepository repository,
-  })  : _repository = repository,
-        super(const DeviceOnboardingInitial()) {
+    required this._repository,
+  })  : super(const DeviceOnboardingInitial()) {
     on<DeviceOnboardSubmitted>(_onDeviceOnboardSubmitted);
     on<DeviceOnboardReset>(_onDeviceOnboardReset);
   }

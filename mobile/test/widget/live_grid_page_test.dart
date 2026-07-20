@@ -79,6 +79,8 @@ void main() {
       final cycler = find.byKey(const Key('layoutCyclerButton'));
       await tester.tap(cycler); // cycle to 3x3
       await tester.pumpAndSettle();
+      await tester.tap(cycler); // cycle to 4x4
+      await tester.pumpAndSettle();
       await tester.tap(cycler); // cycle to 1x1
       await tester.pumpAndSettle();
 
@@ -132,6 +134,44 @@ void main() {
 
       expect(find.text('1'), findsOneWidget);
       expect(find.text('9'), findsOneWidget);
+    });
+
+    testWidgets('tapping an assigned camera tile switches layout to 1x1 focus mode', (tester) async {
+      final cameras = [
+        const Camera(
+          id: 'cam_1',
+          siteId: 'site_1',
+          name: 'Front Entrance Gate',
+          ipAddress: '192.168.1.1',
+          rtspUrl: 'rtsp://...',
+          onvifProfile: 'S',
+          codec: 'H264',
+          ptzCapable: true,
+          status: 'CONNECTED',
+        )
+      ];
+      when(() => mockCameraBloc.state).thenReturn(CameraLoaded(cameras: cameras));
+      when(() => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'))
+          .thenAnswer((_) async => 'https://example.com/stream.m3u8');
+
+      await tester.pumpWidget(buildTestWidget());
+
+      // Open camera picker and assign camera to slot 1
+      await tester.tap(find.text('Assign Camera'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Front Entrance Gate'));
+      await tester.pumpAndSettle();
+
+      // Currently in 2x2 grid (slots 1, 2, 3, 4 are present)
+      expect(find.text('2'), findsOneWidget);
+
+      // Tap slot 1 (assigned camera)
+      await tester.tap(find.text('Front Entrance Gate'));
+      await tester.pumpAndSettle();
+
+      // Should switch layout to 1x1 (slot 2 is no longer rendered)
+      expect(find.text('2'), findsNothing);
+      expect(find.text('[1]'), findsOneWidget);
     });
   });
 }

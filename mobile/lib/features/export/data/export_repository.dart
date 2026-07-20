@@ -22,6 +22,7 @@ class ExportRepository {
       status: 'COMPLETED',
       downloadUrl: 'https://playertest.longtailvideo.com/adaptive/oceans/oceans.m3u8',
       progress: 1,
+      sha256Hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
       createdAt: DateTime.now().subtract(const Duration(hours: 4)),
     ),
     ExportJob(
@@ -42,6 +43,8 @@ class ExportRepository {
     required String cameraId,
     required DateTime startTime,
     required DateTime endTime,
+    bool watermarked = true,
+    String format = 'MP4',
   }) async {
     if (GetIt.instance.isRegistered<AuthBloc>()) {
       final authState = GetIt.instance<AuthBloc>().state;
@@ -54,6 +57,8 @@ class ExportRepository {
         endTime: endTime,
         status: 'PROCESSING',
         progress: 0,
+        watermarked: watermarked,
+        format: format,
         createdAt: DateTime.now(),
       );
       _demoExports.insert(0, newJob);
@@ -74,6 +79,9 @@ class ExportRepository {
                 status: 'COMPLETED',
                 progress: 1,
                 downloadUrl: 'https://playertest.longtailvideo.com/adaptive/oceans/oceans.m3u8',
+                sha256Hash: 'd7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592',
+                watermarked: currentJob.watermarked,
+                format: currentJob.format,
                 createdAt: currentJob.createdAt,
               );
               timer.cancel();
@@ -86,6 +94,8 @@ class ExportRepository {
                 endTime: currentJob.endTime,
                 status: 'PROCESSING',
                 progress: nextProgress,
+                watermarked: currentJob.watermarked,
+                format: currentJob.format,
                 createdAt: currentJob.createdAt,
               );
             }
@@ -107,10 +117,10 @@ class ExportRepository {
         data: <String, dynamic>{
           'start_time': startTime.toIso8601String(),
           'end_time': endTime.toIso8601String(),
-          'watermark': true,
-          'watermark_text': 'CONFIDENTIAL - MOBILE EXPORT',
-          'format': 'MP4',
-          'reason': 'Security Incident Triaging',
+          'watermark': watermarked,
+          'watermark_text': 'CONFIDENTIAL - SENTINEL VMS EVIDENCE',
+          'format': format,
+          'reason': 'Security Incident Evidence Export',
         },
       );
 

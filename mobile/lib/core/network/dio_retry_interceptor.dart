@@ -26,7 +26,7 @@ class DioRetryInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     final extra = err.requestOptions.extra;
-    final retryCount = (extra['retry_count'] as int? ?? 0);
+    final retryCount = extra['retry_count'] as int? ?? 0;
 
     if (_shouldRetry(err) && retryCount < maxRetries) {
       final nextAttempt = retryCount + 1;

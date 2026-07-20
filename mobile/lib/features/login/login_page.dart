@@ -169,7 +169,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
     _checkScale = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0, end: 1.3), weight: 50),
-      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1), weight: 50),
     ]).animate(
       CurvedAnimation(
         parent: _verifiedController,
@@ -184,7 +184,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       ),
     );
 
-    _ringScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+    _ringScale = Tween<double>(begin: 0.5, end: 1).animate(
       CurvedAnimation(
         parent: _verifiedController,
         curve: const Interval(0, 0.5, curve: Curves.easeOutCubic),
@@ -315,23 +315,25 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     setState(() => _showVerified = true);
                     _verifiedController.forward(from: 0).then((_) {
                       Future.delayed(const Duration(milliseconds: 300), () {
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         GetIt.instance<AuthBloc>().add(
                           AuthLoggedIn(
                             accessToken: accessToken,
                             user: user,
                           ),
                         );
+                        if (!context.mounted) return;
                         context.go('/live_grid');
                       });
                     }).catchError((_) {
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       GetIt.instance<AuthBloc>().add(
                         AuthLoggedIn(
                           accessToken: accessToken,
                           user: user,
                         ),
                       );
+                      if (!context.mounted) return;
                       context.go('/live_grid');
                     });
                   } else if (state is LoginOtpRequired) {

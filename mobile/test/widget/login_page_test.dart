@@ -125,7 +125,7 @@ void main() {
       when(() => customLoginBloc.stream).thenAnswer(
         (_) => Stream<LoginState>.fromIterable([const LoginOtpRequired(email: 'operator@demo.com')]),
       );
-      when(() => customLoginBloc.close()).thenAnswer((_) async {});
+      when(customLoginBloc.close).thenAnswer((_) async {});
 
       await tester.pumpWidget(createWidgetUnderTest(customBloc: customLoginBloc));
       // First pump to trigger listener

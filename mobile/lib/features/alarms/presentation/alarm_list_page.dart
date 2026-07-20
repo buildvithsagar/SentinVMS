@@ -196,7 +196,7 @@ class _AlarmCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.15),
+                        color: statusColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -251,7 +251,6 @@ class _AlarmCard extends StatelessWidget {
                             opacity: 0.15,
                             child: GridPaper(
                               color: statusColor,
-                              divisions: 2,
                               subdivisions: 1,
                             ),
                           ),
@@ -259,7 +258,7 @@ class _AlarmCard extends StatelessWidget {
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.image, color: statusColor.withOpacity(0.5), size: 36),
+                            Icon(Icons.image, color: statusColor.withValues(alpha: 0.5), size: 36),
                             const SizedBox(height: 8),
                             Text(
                               '${alarm.eventClass} Alert Snapshot Frame',

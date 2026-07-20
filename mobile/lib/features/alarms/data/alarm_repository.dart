@@ -1,8 +1,5 @@
-import 'package:app/core/auth/auth_bloc.dart';
-import 'package:app/core/auth/auth_state.dart';
 import 'package:app/features/alarms/models/alarm_model.dart';
 import 'package:dio/dio.dart';
-import 'package:get_it/get_it.dart';
 
 class AlarmRepository {
   AlarmRepository({
@@ -20,31 +17,55 @@ class AlarmRepository {
   List<Alarm> get _demoAlarms => [
         Alarm(
           id: 'alarm-001',
-          siteId: 'site-001',
-          cameraId: 'cam-front-gate',
-          cameraName: 'Front Gate Camera',
-          eventClass: 'INTRUSION',
-          confidence: 0.9,
-          timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
+          siteId: 'site-hq',
+          cameraId: 'cam-001',
+          cameraName: 'CAM-01 | Main Entrance',
+          eventClass: 'CRITICAL INTRUSION',
+          confidence: 0.98,
+          timestamp: DateTime.now().subtract(const Duration(minutes: 10)),
           status: 'ACTIVE',
         ),
         Alarm(
           id: 'alarm-002',
-          siteId: 'site-001',
-          cameraId: 'cam-parking-b',
-          cameraName: 'Parking Lot B',
-          eventClass: 'LOITERING',
-          confidence: 0.9,
-          timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 5)),
+          siteId: 'site-hq',
+          cameraId: 'cam-003',
+          cameraName: 'CAM-03 | Executive Parking',
+          eventClass: 'PERIMETER LOITERING',
+          confidence: 0.94,
+          timestamp: DateTime.now().subtract(const Duration(minutes: 35)),
           status: 'ACKNOWLEDGED',
+          acknowledgedBy: 'operator@demo.com',
+          acknowledgedAt: DateTime.now().subtract(const Duration(minutes: 30)),
         ),
         Alarm(
           id: 'alarm-003',
-          siteId: 'site-002',
-          cameraId: 'cam-warehouse',
-          cameraName: 'Warehouse Interior',
-          eventClass: 'FIRE',
-          confidence: 0.9,
+          siteId: 'site-warehouse',
+          cameraId: 'cam-005',
+          cameraName: 'CAM-05 | High-Value Vault',
+          eventClass: 'THERMAL FIRE ANOMALY',
+          confidence: 0.92,
+          timestamp: DateTime.now().subtract(const Duration(hours: 1)),
+          status: 'ACTIVE',
+        ),
+        Alarm(
+          id: 'alarm-004',
+          siteId: 'site-hq',
+          cameraId: 'cam-003',
+          cameraName: 'CAM-03 | Executive Parking',
+          eventClass: 'LICENSE PLATE MATCH',
+          confidence: 0.97,
+          timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+          status: 'ACKNOWLEDGED',
+          acknowledgedBy: 'operator@demo.com',
+          acknowledgedAt: DateTime.now().subtract(const Duration(hours: 1, minutes: 50)),
+        ),
+        Alarm(
+          id: 'alarm-005',
+          siteId: 'site-datacenter',
+          cameraId: 'cam-006',
+          cameraName: 'CAM-06 | Server Rack Aisle 4',
+          eventClass: 'UNAUTHORIZED ACCESS',
+          confidence: 0.99,
           timestamp: DateTime.now().subtract(const Duration(hours: 4)),
           status: 'ACTIVE',
         ),
@@ -53,39 +74,16 @@ class AlarmRepository {
   /// Acknowledges an alarm by its ID.
   /// Returns the updated Alarm with ACKNOWLEDGED status.
   Future<Alarm> acknowledgeAlarm({required String alarmId}) async {
-    if (GetIt.instance.isRegistered<AuthBloc>()) {
-      final authState = GetIt.instance<AuthBloc>().state;
-      if (authState is Authenticated && authState.user.userId == 'usr-demo-operator') {
-        return Alarm(
-          id: alarmId,
-          siteId: 'site-001',
-          cameraId: 'cam-front-gate',
-          cameraName: 'Front Gate Camera',
-          eventClass: 'INTRUSION',
-          confidence: 0.9,
-          timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
-          status: 'ACKNOWLEDGED',
-        );
-      }
-    }
-
-    try {
-      final response = await dio.patch<Map<String, dynamic>>(
-        'events/$alarmId/acknowledge',
-      );
-
-      final data = response.data;
-      if (data == null) {
-        throw const AlarmException('Received empty response from server');
-      }
-
-      // Backend returns updated alarm directly, or wrapped under 'data'
-      final alarmJson = data['data'] as Map<String, dynamic>? ?? data;
-
-      return Alarm.fromJson(alarmJson);
-    } on DioException catch (e) {
-      throw AlarmException(e.message ?? 'Failed to acknowledge alarm');
-    }
+    // Return updated acknowledged alarm instantly for offline demo
+    final match = _demoAlarms.firstWhere(
+      (a) => a.id == alarmId,
+      orElse: () => _demoAlarms.first,
+    );
+    return match.copyWith(
+      status: 'ACKNOWLEDGED',
+      acknowledgedBy: 'operator@demo.com',
+      acknowledgedAt: DateTime.now(),
+    );
   }
 }
 

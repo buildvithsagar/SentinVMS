@@ -23,14 +23,11 @@ class AppConfig {
     switch (envString.toLowerCase()) {
       case 'dev':
         env = AppEnvironment.dev;
-        break;
       case 'staging':
         env = AppEnvironment.staging;
-        break;
       case 'prod':
       default:
         env = AppEnvironment.prod;
-        break;
     }
 
     final String defaultApiUrl;
@@ -40,19 +37,16 @@ class AppConfig {
       case AppEnvironment.dev:
         defaultApiUrl = 'http://10.0.2.2:8000/api/v5';
         defaultWsUrl = 'http://10.0.2.2:8000';
-        break;
       case AppEnvironment.staging:
         defaultApiUrl = 'https://api.staging.vms.serviceprovider.com/api/v5';
         defaultWsUrl = 'https://api.staging.vms.serviceprovider.com';
-        break;
       case AppEnvironment.prod:
         defaultApiUrl = 'https://api.vms.serviceprovider.com/api/v5';
         defaultWsUrl = 'https://api.vms.serviceprovider.com';
-        break;
     }
 
-    final apiBaseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: '');
-    final wsUrl = const String.fromEnvironment('WS_URL', defaultValue: '');
+    const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+    const wsUrl = String.fromEnvironment('WS_URL');
 
     instance = AppConfig._(
       environment: env,

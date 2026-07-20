@@ -3,15 +3,17 @@ import 'dart:math' as math;
 import 'package:app/features/playback/models/recording_segment_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
-/// A color-coded 24-hour timeline scrubber that visualises recording segments
-/// and allows the user to seek by tapping or dragging.
+/// A color-coded timeline scrubber that visualises recording segments
+/// and allows the user to seek by tapping or dragging across custom time spans.
 class TimelineScrubber extends StatefulWidget {
   const TimelineScrubber({
     required this.segments,
     required this.date,
     required this.onSeek,
     this.currentTime,
+    this.spanDuration = const Duration(hours: 24),
     this.height = 80,
     super.key,
   });
@@ -19,7 +21,7 @@ class TimelineScrubber extends StatefulWidget {
   /// Recording segments to display on the timeline.
   final List<RecordingSegment> segments;
 
-  /// The calendar date this timeline represents (midnight-to-midnight).
+  /// The calendar date this timeline represents.
   final DateTime date;
 
   /// Called when the user scrubs or taps to a new position.
@@ -27,6 +29,9 @@ class TimelineScrubber extends StatefulWidget {
 
   /// Current playback position shown as a vertical playhead.
   final DateTime? currentTime;
+
+  /// Visible time span duration for zooming (24h, 12h, 6h, 3h, 1h, 30m, 15m, 5m).
+  final Duration spanDuration;
 
   /// Total height of the timeline widget.
   final double height;
@@ -42,37 +47,51 @@ class _TimelineScrubberState extends State<TimelineScrubber> {
   /// Track if the playhead was in a recording segment during last seek update
   bool _lastInSegment = false;
 
-  /// Start of the day (00:00:00) for the given date.
-  DateTime get _dayStart => DateTime(
-        widget.date.year,
-        widget.date.month,
-        widget.date.day,
+  /// Calculated visible window start date/time.
+  DateTime get _windowStart {
+    final span = widget.spanDuration;
+    final dayStart = DateTime(widget.date.year, widget.date.month, widget.date.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    if (span.inHours >= 24) {
+      return dayStart;
+    }
+
+    final center = widget.currentTime ?? dayStart.add(const Duration(hours: 12));
+    var start = center.subtract(Duration(milliseconds: span.inMilliseconds ~/ 2));
+    var end = start.add(span);
+
+    if (start.isBefore(dayStart)) {
+      start = dayStart;
+      end = start.add(span);
+    } else if (end.isAfter(dayEnd)) {
+      end = dayEnd;
+      start = end.subtract(span);
+    }
+    return start;
+  }
+
+  /// Calculated visible window end date/time.
+  DateTime get _windowEnd => _windowStart.add(
+        widget.spanDuration.inHours >= 24 ? const Duration(days: 1) : widget.spanDuration,
       );
-
-  /// End of the day (next midnight).
-  DateTime get _dayEnd => _dayStart.add(const Duration(days: 1));
-
-  /// Total number of seconds in the 24-hour span.
-  static const int _totalSeconds = 86400; // 24 * 60 * 60
-
-  // ─── Conversion helpers ───────────────────────────────────────────────
-
 
   /// Maps an x-offset (in the full widget width) back to a [DateTime].
   DateTime _offsetToTime(double dx, double fullWidth) {
     final trackWidth = fullWidth - _horizontalPadding * 2;
     final ratio = ((dx - _horizontalPadding) / trackWidth).clamp(0.0, 1.0);
-    final ms = (ratio * _totalSeconds * 1000).round();
-    return _dayStart.add(Duration(milliseconds: ms));
+    final totalMs = _windowEnd.difference(_windowStart).inMilliseconds;
+    final ms = (ratio * totalMs).round();
+    return _windowStart.add(Duration(milliseconds: ms));
   }
 
   // ─── Gesture handlers ─────────────────────────────────────────────────
 
   void _handleSeek(double localDx, double fullWidth) {
     final seekTime = _offsetToTime(localDx, fullWidth);
-    
+
     // Check if the seek time sits inside any active segment
-    bool isInSegment = false;
+    var isInSegment = false;
     for (final seg in widget.segments) {
       if (seekTime.isAfter(seg.startTime) && seekTime.isBefore(seg.endTime)) {
         isInSegment = true;
@@ -106,8 +125,8 @@ class _TimelineScrubberState extends State<TimelineScrubber> {
               size: Size(fullWidth, widget.height),
               painter: _TimelinePainter(
                 segments: widget.segments,
-                dayStart: _dayStart,
-                dayEnd: _dayEnd,
+                windowStart: _windowStart,
+                windowEnd: _windowEnd,
                 currentTime: widget.currentTime,
                 horizontalPadding: _horizontalPadding,
               ),
@@ -126,15 +145,15 @@ class _TimelineScrubberState extends State<TimelineScrubber> {
 class _TimelinePainter extends CustomPainter {
   _TimelinePainter({
     required this.segments,
-    required this.dayStart,
-    required this.dayEnd,
+    required this.windowStart,
+    required this.windowEnd,
     required this.horizontalPadding,
     this.currentTime,
   });
 
   final List<RecordingSegment> segments;
-  final DateTime dayStart;
-  final DateTime dayEnd;
+  final DateTime windowStart;
+  final DateTime windowEnd;
   final DateTime? currentTime;
   final double horizontalPadding;
 
@@ -163,9 +182,9 @@ class _TimelinePainter extends CustomPainter {
   // ─── Helpers ──────────────────────────────────────────────────────────
 
   double _timeToX(DateTime time, double trackWidth) {
-    final totalMs = dayEnd.difference(dayStart).inMilliseconds;
-    if (totalMs == 0) return horizontalPadding;
-    final elapsed = time.difference(dayStart).inMilliseconds;
+    final totalMs = windowEnd.difference(windowStart).inMilliseconds;
+    if (totalMs <= 0) return horizontalPadding;
+    final elapsed = time.difference(windowStart).inMilliseconds;
     final ratio = (elapsed / totalMs).clamp(0.0, 1.0);
     return horizontalPadding + ratio * trackWidth;
   }
@@ -226,14 +245,10 @@ class _TimelinePainter extends CustomPainter {
     final segmentPaint = Paint()..style = PaintingStyle.fill;
 
     for (final segment in segments) {
-      // Clamp segment times to the visible day range.
-      final clampedStart =
-          segment.startTime.isBefore(dayStart) ? dayStart : segment.startTime;
-      final clampedEnd =
-          segment.endTime.isAfter(dayEnd) ? dayEnd : segment.endTime;
+      final clampedStart = segment.startTime.isBefore(windowStart) ? windowStart : segment.startTime;
+      final clampedEnd = segment.endTime.isAfter(windowEnd) ? windowEnd : segment.endTime;
 
-      if (clampedStart.isAfter(clampedEnd) ||
-          clampedStart.isAtSameMomentAs(clampedEnd)) {
+      if (clampedStart.isAfter(clampedEnd) || clampedStart.isAtSameMomentAs(clampedEnd)) {
         continue;
       }
 
@@ -270,32 +285,71 @@ class _TimelinePainter extends CustomPainter {
       fontFamily: 'monospace',
     );
 
-    for (var hour = 0; hour < 24; hour++) {
-      final hourTime = dayStart.add(Duration(hours: hour));
-      final x = _timeToX(hourTime, trackWidth);
+    final totalDuration = windowEnd.difference(windowStart);
+    Duration tickStep;
+    Duration labelStep;
+    DateFormat formatter;
 
-      // Vertical grid line through the track area.
+    if (totalDuration >= const Duration(hours: 18)) {
+      tickStep = const Duration(hours: 1);
+      labelStep = const Duration(hours: 2);
+      formatter = DateFormat('HH:mm');
+    } else if (totalDuration >= const Duration(hours: 8)) {
+      tickStep = const Duration(minutes: 30);
+      labelStep = const Duration(hours: 1);
+      formatter = DateFormat('HH:mm');
+    } else if (totalDuration >= const Duration(hours: 4)) {
+      tickStep = const Duration(minutes: 15);
+      labelStep = const Duration(minutes: 30);
+      formatter = DateFormat('HH:mm');
+    } else if (totalDuration >= const Duration(hours: 2)) {
+      tickStep = const Duration(minutes: 10);
+      labelStep = const Duration(minutes: 15);
+      formatter = DateFormat('HH:mm');
+    } else if (totalDuration >= const Duration(minutes: 45)) {
+      tickStep = const Duration(minutes: 2);
+      labelStep = const Duration(minutes: 5);
+      formatter = DateFormat('HH:mm');
+    } else if (totalDuration >= const Duration(minutes: 20)) {
+      tickStep = const Duration(minutes: 1);
+      labelStep = const Duration(minutes: 5);
+      formatter = DateFormat('HH:mm');
+    } else if (totalDuration >= const Duration(minutes: 10)) {
+      tickStep = const Duration(seconds: 30);
+      labelStep = const Duration(minutes: 2);
+      formatter = DateFormat('mm:ss');
+    } else {
+      tickStep = const Duration(seconds: 10);
+      labelStep = const Duration(minutes: 1);
+      formatter = DateFormat('mm:ss');
+    }
+
+    var curr = windowStart;
+    while (curr.isBefore(windowEnd) || curr.isAtSameMomentAs(windowEnd)) {
+      final x = _timeToX(curr, trackWidth);
+
       canvas.drawLine(
         Offset(x, trackTop),
         Offset(x, trackTop + trackHeight),
         gridPaint,
       );
 
-      // Hour label above the track.
-      final label = '${hour.toString().padLeft(2, '0')}:00';
-      final textSpan = TextSpan(text: label, style: labelStyle);
-      final textPainter = TextPainter(
-        text: textSpan,
-        textDirection: TextDirection.ltr,
-      )..layout();
+      final elapsedSec = curr.difference(windowStart).inSeconds;
+      if (elapsedSec % labelStep.inSeconds == 0) {
+        final label = formatter.format(curr);
+        final textSpan = TextSpan(text: label, style: labelStyle);
+        final textPainter = TextPainter(
+          text: textSpan,
+          textDirection: TextDirection.ltr,
+        )..layout();
 
-      // Only paint every other label when space is tight to avoid overlap.
-      if (hour.isEven || trackWidth > 600) {
         textPainter.paint(
           canvas,
           Offset(x - textPainter.width / 2, trackTop - textPainter.height - 4),
         );
       }
+
+      curr = curr.add(tickStep);
     }
   }
 
@@ -309,8 +363,8 @@ class _TimelinePainter extends CustomPainter {
     final time = currentTime;
     if (time == null) return;
 
-    // Only draw if playhead falls within the visible day.
-    if (time.isBefore(dayStart) || time.isAfter(dayEnd)) return;
+    // Only draw if playhead falls within the visible window.
+    if (time.isBefore(windowStart) || time.isAfter(windowEnd)) return;
 
     final x = _timeToX(time, trackWidth);
 
@@ -391,6 +445,7 @@ class _TimelinePainter extends CustomPainter {
   bool shouldRepaint(covariant _TimelinePainter oldDelegate) {
     return oldDelegate.currentTime != currentTime ||
         oldDelegate.segments != segments ||
-        oldDelegate.dayStart != dayStart;
+        oldDelegate.windowStart != windowStart ||
+        oldDelegate.windowEnd != windowEnd;
   }
 }

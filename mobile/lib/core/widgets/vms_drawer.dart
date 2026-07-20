@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:get_it/get_it.dart';
-import 'package:go_router/go_router.dart';
 import 'package:app/core/auth/auth_bloc.dart';
 import 'package:app/core/auth/auth_event.dart';
 import 'package:app/features/login/data/auth_repository.dart';
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 
 class VmsDrawer extends StatelessWidget {
   const VmsDrawer({required this.currentRoute, super.key});
@@ -101,7 +100,7 @@ class VmsDrawer extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Divider(color: Colors.white.withOpacity(0.08), height: 1),
+                    Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
                   ],
                 ),
               ),
@@ -143,7 +142,7 @@ class VmsDrawer extends StatelessWidget {
                     route: '/exports',
                   ),
                   const SizedBox(height: 16),
-                  Divider(color: Colors.white.withOpacity(0.08), height: 1),
+                  Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
                   const SizedBox(height: 16),
                   _buildLogoutItem(context),
                 ],
@@ -157,7 +156,7 @@ class VmsDrawer extends StatelessWidget {
                 child: Text(
                   'VMS OPERATOR v1.0.0',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.5,
@@ -183,9 +182,9 @@ class VmsDrawer extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: isActive ? const Color(0xFF2DD4BF).withOpacity(0.08) : Colors.white.withOpacity(0.01),
+          color: isActive ? const Color(0xFF2DD4BF).withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.01),
           border: Border.all(
-            color: isActive ? const Color(0xFF2DD4BF).withOpacity(0.2) : Colors.transparent,
+            color: isActive ? const Color(0xFF2DD4BF).withValues(alpha: 0.2) : Colors.transparent,
           ),
         ),
         child: Material(
@@ -221,7 +220,7 @@ class VmsDrawer extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: Colors.white.withOpacity(0.01),
+          color: Colors.white.withValues(alpha: 0.01),
         ),
         child: Material(
           color: Colors.transparent,

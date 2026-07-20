@@ -78,7 +78,7 @@ void main() {
       expect(find.text('Retry'), findsOneWidget);
     });
 
-    testWidgets('renders PTZ overlay if camera is PTZ capable', (tester) async {
+    testWidgets('renders PTZ overlay if camera is PTZ capable and showPtzOverlay is true', (tester) async {
       final ptzCamera = camera.copyWith(ptzCapable: true);
       when(() => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'))
           .thenThrow(const CameraException('Failed to load URL'));
@@ -90,6 +90,7 @@ void main() {
               camera: ptzCamera,
               cameraRepository: mockRepo,
               decoderPool: mockPool,
+              showPtzOverlay: true,
             ),
           ),
         ),

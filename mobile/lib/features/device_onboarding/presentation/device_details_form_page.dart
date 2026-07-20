@@ -110,8 +110,9 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                     ),
                   ),
                 );
-                context.pop(); // Returns to select category page
-                context.pop(); // Returns to cameras list or dashboard
+                context
+                  ..pop()
+                  ..pop(); // Returns to cameras list or dashboard
               } else if (state is DeviceOnboardingFailure) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -144,22 +145,27 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                       ),
                     ),
                     actions: [
-                      TextButton(
-                        onPressed: () => _submitForm(context),
-                        child: const Text(
-                          'Save',
-                          style: TextStyle(
-                            color: accentGreen,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
+                      BlocBuilder<DeviceOnboardingBloc, DeviceOnboardingState>(
+                        builder: (context, state) {
+                          final isLoading = state is DeviceOnboardingLoading;
+                          return TextButton(
+                            onPressed: isLoading ? null : () => _submitForm(context),
+                            child: Text(
+                              'Save',
+                              style: TextStyle(
+                                color: isLoading ? mutedText : accentGreen,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
                   body: SafeArea(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.all(20),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -414,8 +420,8 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                 BlocBuilder<DeviceOnboardingBloc, DeviceOnboardingState>(
                   builder: (context, state) {
                     if (state is DeviceOnboardingLoading) {
-                      return Container(
-                        color: Colors.black.withOpacity(0.5),
+                      return ColoredBox(
+                        color: Colors.black.withValues(alpha: 0.5),
                         child: const Center(
                           child: CircularProgressIndicator(
                             valueColor: AlwaysStoppedAnimation<Color>(accentGreen),

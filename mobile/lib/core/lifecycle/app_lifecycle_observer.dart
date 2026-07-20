@@ -28,15 +28,12 @@ class AppLifecycleObserver with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.resumed:
         _onResumed();
-        break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
         _onPaused();
-        break;
       case AppLifecycleState.detached:
         _onDetached();
-        break;
     }
   }
 

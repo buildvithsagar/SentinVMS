@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:app/app/app.dart';
 import 'package:app/core/auth/auth_bloc.dart';
 import 'package:app/core/config/app_config.dart';
@@ -12,10 +13,10 @@ import 'package:app/features/alarms/bloc/alarm_bloc.dart';
 import 'package:app/features/alarms/bloc/alarm_event.dart';
 import 'package:app/features/alarms/data/alarm_repository.dart';
 import 'package:app/features/camera/data/camera_repository.dart';
+import 'package:app/features/device_onboarding/data/device_onboarding_repository.dart';
 import 'package:app/features/export/data/export_repository.dart';
 import 'package:app/features/login/data/auth_repository.dart';
 import 'package:app/features/playback/data/playback_repository.dart';
-import 'package:app/features/device_onboarding/data/device_onboarding_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -98,8 +99,7 @@ void main() {
       final lifecycleObserver = AppLifecycleObserver(
         webSocketService: webSocketService,
         logger: _logger,
-      );
-      lifecycleObserver.initialize();
+      )..initialize();
       getIt.registerSingleton<AppLifecycleObserver>(lifecycleObserver);
 
       webSocketService.eventStream.listen((event) {

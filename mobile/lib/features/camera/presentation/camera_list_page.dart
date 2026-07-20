@@ -344,7 +344,7 @@ class _CameraListPageState extends State<CameraListPage> {
                 child: BottomNavigationBar(
                   currentIndex: 1,
                   backgroundColor: Colors.transparent,
-                  selectedItemColor: const Color(0xFF2563EB),
+                  selectedItemColor: const Color(0xFF2DD4BF),
                   unselectedItemColor: const Color(0xFF94A3B8),
                   elevation: 0,
                   type: BottomNavigationBarType.fixed,

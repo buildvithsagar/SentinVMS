@@ -10,12 +10,14 @@ class VideoTile extends StatefulWidget {
     required this.camera,
     required this.cameraRepository,
     required this.decoderPool,
+    this.showPtzOverlay = false,
     super.key,
   });
 
   final Camera camera;
   final CameraRepository cameraRepository;
   final DecoderPool decoderPool;
+  final bool showPtzOverlay;
 
   @override
   State<VideoTile> createState() => _VideoTileState();
@@ -56,7 +58,12 @@ class _VideoTileState extends State<VideoTile> {
         cameraId: widget.camera.id,
       );
 
-      final controller = VideoPlayerController.networkUrl(Uri.parse(hlsUrl));
+      final controller = VideoPlayerController.networkUrl(
+        Uri.parse(hlsUrl),
+        httpHeaders: const {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      );
       _controller = controller;
 
       await controller.initialize();
@@ -205,7 +212,7 @@ class _VideoTileState extends State<VideoTile> {
               ),
 
             // PTZ Stub Controls Overlay
-            if (widget.camera.ptzCapable) _buildPtzOverlay(),
+            if (widget.camera.ptzCapable && widget.showPtzOverlay) _buildPtzOverlay(),
           ],
         ),
       ),
@@ -215,31 +222,38 @@ class _VideoTileState extends State<VideoTile> {
   Widget _buildVideoContent() {
     if (_errorMessage != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 32),
-              const SizedBox(height: 8),
-              const Text(
-                'Stream Error',
-                style: TextStyle(
-                  color: Color(0xFF1E293B),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 24),
+                const SizedBox(height: 4),
+                const Text(
+                  'Stream Error',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  minimumSize: Size.zero,
+                const SizedBox(height: 6),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: _initializePlayer,
+                  child: const Text('Retry', style: TextStyle(fontSize: 10)),
                 ),
-                onPressed: _initializePlayer,
-                child: const Text('Retry', style: TextStyle(fontSize: 11)),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
@@ -247,37 +261,44 @@ class _VideoTileState extends State<VideoTile> {
 
     if (_isEvicted) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.pause_circle_outline, color: Color(0xFF64748B), size: 32),
-              const SizedBox(height: 8),
-              const Text(
-                'Playback Paused',
-                style: TextStyle(
-                  color: Color(0xFF1E293B),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.pause_circle_outline, color: Color(0xFF64748B), size: 24),
+                const SizedBox(height: 4),
+                const Text(
+                  'Playback Paused',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Paused to save decoder resources',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF64748B), fontSize: 10),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  minimumSize: Size.zero,
+                const SizedBox(height: 2),
+                const Text(
+                  'Paused to save decoder resources',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 9),
                 ),
-                onPressed: _initializePlayer,
-                child: const Text('Resume', style: TextStyle(fontSize: 11)),
-              ),
-            ],
+                const SizedBox(height: 6),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: _initializePlayer,
+                  child: const Text('Resume', style: TextStyle(fontSize: 10)),
+                ),
+              ],
+            ),
           ),
         ),
       );

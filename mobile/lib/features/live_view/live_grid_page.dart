@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:flutter/services.dart';
 import 'package:app/core/video/decoder_pool.dart';
 import 'package:app/core/widgets/vms_drawer.dart';
 import 'package:app/features/alarms/bloc/alarm_bloc.dart';
@@ -15,6 +14,7 @@ import 'package:app/features/camera/data/camera_repository.dart';
 import 'package:app/features/camera/models/camera_model.dart';
 import 'package:app/features/live_view/widgets/video_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -28,11 +28,11 @@ class LiveGridPage extends StatefulWidget {
 }
 
 class _LiveGridPageState extends State<LiveGridPage> {
-  final List<Camera?> _gridCameras = List<Camera?>.filled(9, null);
-  int _layoutGridSize = 2; // 1 for 1x1, 2 for 2x2, 3 for 3x3
+  final List<Camera?> _gridCameras = List<Camera?>.filled(16, null);
+  int _layoutGridSize = 2; // 1 for 1x1, 2 for 2x2, 3 for 3x3, 4 for 4x4
   int _selectedSlotIndex = 0;
 
-  final List<bool> _instantPlaybackSlots = List<bool>.filled(9, false);
+  final List<bool> _instantPlaybackSlots = List<bool>.filled(16, false);
   bool _isPanicOverlayActive = false;
   int _panicCountdown = 5;
   Timer? _panicTimer;
@@ -45,6 +45,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
   bool _isRecording = false;
   bool _isPTZActive = false;
   bool _isAlarmPanelExpanded = false;
+  bool _isFullScreen = false;
 
   @override
   void initState() {
@@ -56,7 +57,31 @@ class _LiveGridPageState extends State<LiveGridPage> {
   @override
   void dispose() {
     _panicTimer?.cancel();
+    if (_isFullScreen) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
     super.dispose();
+  }
+
+  void _toggleFullScreen() {
+    setState(() {
+      _isFullScreen = !_isFullScreen;
+    });
+    if (_isFullScreen) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
   }
 
   void _selectSlot(int index) {
@@ -257,6 +282,96 @@ class _LiveGridPageState extends State<LiveGridPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isFullScreen) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _isFullScreen) {
+            _toggleFullScreen();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: _layoutGridSize == 4
+                    ? _build4x4Grid()
+                    : _layoutGridSize == 3
+                        ? _build3x3Grid()
+                        : _layoutGridSize == 2
+                            ? _build2x2Grid()
+                            : _build1x1Focus(),
+              ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (_layoutGridSize == 1) {
+                              _layoutGridSize = 2;
+                            } else if (_layoutGridSize == 2) {
+                              _layoutGridSize = 3;
+                            } else if (_layoutGridSize == 3) {
+                              _layoutGridSize = 4;
+                            } else {
+                              _layoutGridSize = 1;
+                            }
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2DD4BF).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _layoutGridSize == 1
+                                ? '[1]'
+                                : _layoutGridSize == 2
+                                    ? '[4]'
+                                    : _layoutGridSize == 3
+                                        ? '[9]'
+                                        : '[16]',
+                            style: const TextStyle(
+                              color: Color(0xFF2DD4BF),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        key: const Key('exitFullscreenLandscapeButton'),
+                        iconSize: 22,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: const Icon(Icons.fullscreen_exit, color: Colors.white),
+                        tooltip: 'Exit Fullscreen',
+                        onPressed: _toggleFullScreen,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       drawer: const VmsDrawer(currentRoute: '/live_grid'),
@@ -297,25 +412,41 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     child: camera == null
-                        ? Align(
-                            alignment: Alignment.centerLeft,
-                            child: ElevatedButton.icon(
-                              key: const Key('assignCameraButtonTop'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2563EB),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              ElevatedButton.icon(
+                                key: const Key('assignCameraButtonTop'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                 ),
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                icon: const Icon(Icons.add, size: 14, color: Colors.white),
+                                label: const Text(
+                                  'Assign Camera',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                                onPressed: () => _showCameraPicker(context),
                               ),
-                              icon: const Icon(Icons.add, size: 14, color: Colors.white),
-                              label: const Text(
-                                'Assign Camera',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                              IconButton(
+                                key: const Key('addDeviceTopButtonRight'),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    side: BorderSide(color: const Color(0xFF2DD4BF).withValues(alpha: 0.4)),
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                ),
+                                icon: const Icon(Icons.add, size: 18, color: Color(0xFF2DD4BF)),
+                                tooltip: 'Add New Camera Device',
+                                onPressed: () => context.push('/onboard'),
                               ),
-                              onPressed: () => _showCameraPicker(context),
-                            ),
+                            ],
                           )
                         : Container(
                             height: 44,
@@ -342,22 +473,35 @@ class _LiveGridPageState extends State<LiveGridPage> {
                                     ),
                                   ],
                                 ),
-                                TextButton.icon(
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  icon: const Icon(Icons.swap_horiz, size: 14, color: Color(0xFF2DD4BF)),
-                                  label: const Text(
-                                    'Change',
-                                    style: TextStyle(
-                                      color: Color(0xFF2DD4BF),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
+                                Row(
+                                  children: [
+                                    TextButton.icon(
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      icon: const Icon(Icons.swap_horiz, size: 14, color: Color(0xFF2DD4BF)),
+                                      label: const Text(
+                                        'Change',
+                                        style: TextStyle(
+                                          color: Color(0xFF2DD4BF),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      onPressed: () => _showCameraPicker(context),
                                     ),
-                                  ),
-                                  onPressed: () => _showCameraPicker(context),
+                                    const SizedBox(width: 12),
+                                    IconButton(
+                                      key: const Key('addDeviceSlotButtonRight'),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      icon: const Icon(Icons.add, size: 18, color: Color(0xFF2DD4BF)),
+                                      tooltip: 'Add / Onboard New Camera Device',
+                                      onPressed: () => context.push('/onboard'),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -369,12 +513,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
               // Main Viewport Area
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: _layoutGridSize == 3
-                      ? _build3x3Grid()
-                      : _layoutGridSize == 2
-                          ? _build2x2Grid()
-                          : _build1x1Focus(),
+                  padding: EdgeInsets.zero,
+                  child: _layoutGridSize == 4
+                      ? _build4x4Grid()
+                      : _layoutGridSize == 3
+                          ? _build3x3Grid()
+                          : _layoutGridSize == 2
+                              ? _build2x2Grid()
+                              : _build1x1Focus(),
                 ),
               ),
 
@@ -387,8 +533,8 @@ class _LiveGridPageState extends State<LiveGridPage> {
           ),
           if (_isPanicOverlayActive)
             Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.95),
+              child: ColoredBox(
+                color: Colors.black.withValues(alpha: 0.95),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -513,8 +659,6 @@ class _LiveGridPageState extends State<LiveGridPage> {
     return GridView.count(
       crossAxisCount: 2,
       childAspectRatio: 16 / 9,
-      mainAxisSpacing: 2,
-      crossAxisSpacing: 2,
       children: List.generate(4, _buildGridSlot),
     );
   }
@@ -523,9 +667,15 @@ class _LiveGridPageState extends State<LiveGridPage> {
     return GridView.count(
       crossAxisCount: 3,
       childAspectRatio: 16 / 9,
-      mainAxisSpacing: 2,
-      crossAxisSpacing: 2,
       children: List.generate(9, _buildGridSlot),
+    );
+  }
+
+  Widget _build4x4Grid() {
+    return GridView.count(
+      crossAxisCount: 4,
+      childAspectRatio: 16 / 9,
+      children: List.generate(16, _buildGridSlot),
     );
   }
 
@@ -547,6 +697,13 @@ class _LiveGridPageState extends State<LiveGridPage> {
         _selectSlot(index);
         if (camera == null) {
           _showCameraPicker(context);
+        } else {
+          // Expand to 1x1 Single Camera Screen View when clicking an assigned camera
+          if (_layoutGridSize > 1) {
+            setState(() {
+              _layoutGridSize = 1;
+            });
+          }
         }
       },
       child: _PulsingSelectionBorder(
@@ -595,11 +752,12 @@ class _LiveGridPageState extends State<LiveGridPage> {
                     camera: camera,
                     cameraRepository: GetIt.instance<CameraRepository>(),
                     decoderPool: GetIt.instance<DecoderPool>(),
+                    showPtzOverlay: _layoutGridSize == 1 && _isPTZActive,
                   ),
                   if (_instantPlaybackSlots[index])
                     Positioned.fill(
-                      child: Container(
-                        color: Colors.black.withOpacity(0.55),
+                      child: ColoredBox(
+                        color: Colors.black.withValues(alpha: 0.55),
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -616,7 +774,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEF4444).withOpacity(0.85),
+                                  color: const Color(0xFFEF4444).withValues(alpha: 0.85),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
@@ -634,14 +792,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
                         ),
                       ),
                     ),
-                  if (isSelected && _isPTZActive)
+                  if (_layoutGridSize == 1 && isSelected && _isPTZActive)
                     Positioned(
                       bottom: 4,
                       right: 4,
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.8),
+                          color: Colors.black.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: Colors.white24),
                         ),
@@ -847,6 +1005,8 @@ class _LiveGridPageState extends State<LiveGridPage> {
                       _layoutGridSize = 2;
                     } else if (_layoutGridSize == 2) {
                       _layoutGridSize = 3;
+                    } else if (_layoutGridSize == 3) {
+                      _layoutGridSize = 4;
                     } else {
                       _layoutGridSize = 1;
                     }
@@ -862,7 +1022,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                     ),
                   ),
                   child: Text(
-                    _layoutGridSize == 1 ? '[1]' : _layoutGridSize == 2 ? '[4]' : '[9]',
+                    _layoutGridSize == 1 ? '[1]' : _layoutGridSize == 2 ? '[4]' : _layoutGridSize == 3 ? '[9]' : '[16]',
                     style: const TextStyle(
                       color: Color(0xFF2DD4BF),
                       fontSize: 11,
@@ -872,12 +1032,12 @@ class _LiveGridPageState extends State<LiveGridPage> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.fullscreen, color: Colors.white),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Fullscreen view triggered')),
-                  );
-                },
+                key: const Key('fullscreenButton'),
+                icon: Icon(
+                  _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  color: Colors.white,
+                ),
+                onPressed: _toggleFullScreen,
               ),
             ],
           ),
@@ -974,16 +1134,30 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   );
                 },
               ),
-              // PTZ crosshair centering
+              // PTZ crosshair centering (Single View Only)
               IconButton(
                 icon: Icon(
-                  _isPTZActive ? Icons.center_focus_strong : Icons.center_focus_weak,
-                  color: _isPTZActive ? const Color(0xFF2DD4BF) : Colors.white,
+                  _isPTZActive && _layoutGridSize == 1 ? Icons.center_focus_strong : Icons.center_focus_weak,
+                  color: _isPTZActive && _layoutGridSize == 1 ? const Color(0xFF2DD4BF) : Colors.white,
                 ),
+                tooltip: 'PTZ Controls (Single View Only)',
                 onPressed: () {
-                  setState(() {
-                    _isPTZActive = !_isPTZActive;
-                  });
+                  if (_layoutGridSize != 1) {
+                    setState(() {
+                      _layoutGridSize = 1;
+                      _isPTZActive = true;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Switched to Single Camera View for PTZ controls.'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  } else {
+                    setState(() {
+                      _isPTZActive = !_isPTZActive;
+                    });
+                  }
                 },
               ),
             ],
@@ -1263,13 +1437,30 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Select Camera for Slot',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Select Camera for Slot',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(Icons.add, size: 20, color: Color(0xFF2DD4BF)),
+                  tooltip: 'Add New Camera Device',
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.push('/onboard');
+                  },
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),

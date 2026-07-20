@@ -64,7 +64,7 @@ class DeviceCategoryPage extends StatelessWidget {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -74,7 +74,7 @@ class DeviceCategoryPage extends StatelessWidget {
                   color: mutedText,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  letterSpacing: 1.0,
+                  letterSpacing: 1,
                 ),
               ),
               const SizedBox(height: 16),
@@ -108,8 +108,7 @@ class DeviceCategoryPage extends StatelessWidget {
                         child: Container(
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: primaryBg.withOpacity(0.3),
-                              width: 1,
+                              color: primaryBg.withValues(alpha: 0.3),
                             ),
                             borderRadius: BorderRadius.circular(8),
                           ),
