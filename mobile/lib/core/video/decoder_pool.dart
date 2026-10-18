@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
 
@@ -15,12 +16,12 @@ class DecoderLease {
 
   bool get isEvicted => _isEvicted;
 
-  void evict() {
+  Future<void> evict() async {
     if (!_isEvicted) {
       _isEvicted = true;
       onEvicted();
       try {
-        controller.dispose();
+        await controller.dispose();
       } catch (_) {}
     }
   }
@@ -30,20 +31,28 @@ class DecoderPool {
   DecoderPool({this.maxDecoders = 4});
 
   final int maxDecoders;
-  final List<DecoderLease> _leases = [];
+  // O(1) LRU Double-Linked HashMap: Map key = cameraId, Value = DecoderLease
+  final LinkedHashMap<String, DecoderLease> _lruMap =
+      LinkedHashMap<String, DecoderLease>();
 
-  List<DecoderLease> get activeLeases => List.unmodifiable(_leases);
+  List<DecoderLease> get activeLeases => List.unmodifiable(_lruMap.values);
 
-  /// Acquires a lease for a video decoder.
-  /// If the pool is full, evicts the oldest active lease.
+  /// Acquires a lease for a video decoder with O(1) LRU eviction.
+  /// If the pool is full, evicts the oldest active lease at the head of the LinkedHashMap.
   Future<DecoderLease> acquire({
     required String cameraId,
     required VideoPlayerController controller,
     required VoidCallback onEvicted,
   }) async {
-    // Evict if limit reached
-    if (_leases.length >= maxDecoders) {
-      _leases.removeAt(0).evict();
+    // O(1) Evict existing lease for same camera if present
+    final existing = _lruMap.remove(cameraId);
+    if (existing != null) await existing.evict();
+
+    // O(1) Evict oldest lease at head if pool limit reached
+    if (_lruMap.length >= maxDecoders) {
+      final oldestKey = _lruMap.keys.first;
+      final oldestLease = _lruMap.remove(oldestKey);
+      if (oldestLease != null) await oldestLease.evict();
     }
 
     final lease = DecoderLease(
@@ -51,25 +60,23 @@ class DecoderPool {
       controller: controller,
       onEvicted: onEvicted,
     );
-    _leases.add(lease);
+    // O(1) Append to tail of LinkedHashMap (Most Recently Used)
+    _lruMap[cameraId] = lease;
     return lease;
   }
 
-  /// Releases a lease and disposes the associated controller.
-  void release(DecoderLease lease) {
-    if (_leases.remove(lease)) {
-      try {
-        lease.controller.dispose();
-      } catch (_) {}
-    }
+  /// O(1) Releases a lease and disposes the associated controller.
+  Future<void> release(DecoderLease lease) async {
+    final removed = _lruMap.remove(lease.cameraId);
+    await (removed ?? lease).evict();
   }
 
-  /// Clears and disposes all active leases.
-  void clear() {
-    final leasesCopy = List<DecoderLease>.from(_leases);
-    _leases.clear();
+  /// Clears and disposes all active leases upon logout/session end.
+  Future<void> clear() async {
+    final leasesCopy = List<DecoderLease>.from(_lruMap.values);
+    _lruMap.clear();
     for (final lease in leasesCopy) {
-      lease.evict();
+      await lease.evict();
     }
   }
 }

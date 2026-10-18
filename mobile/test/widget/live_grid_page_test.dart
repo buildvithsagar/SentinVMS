@@ -1,13 +1,7 @@
-import 'package:app/core/video/decoder_pool.dart';
-import 'package:app/features/alarms/bloc/alarm_bloc.dart';
-import 'package:app/features/alarms/bloc/alarm_event.dart';
-import 'package:app/features/alarms/bloc/alarm_state.dart';
-import 'package:app/features/camera/bloc/camera_bloc.dart';
-import 'package:app/features/camera/bloc/camera_event.dart';
-import 'package:app/features/camera/bloc/camera_state.dart';
-import 'package:app/features/camera/data/camera_repository.dart';
-import 'package:app/features/camera/models/camera_model.dart';
-import 'package:app/features/live_view/live_grid_page.dart';
+import 'package:app/core/core.dart';
+import 'package:app/features/alarms/alarms.dart';
+import 'package:app/features/camera/camera.dart';
+import 'package:app/features/live_view/live_view.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,9 +9,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockCameraBloc extends MockBloc<CameraEvent, CameraState> implements CameraBloc {}
-class MockAlarmBloc extends MockBloc<AlarmEvent, AlarmState> implements AlarmBloc {}
+class MockCameraBloc extends MockBloc<CameraEvent, CameraState>
+    implements CameraBloc {}
+
+class MockAlarmBloc extends MockBloc<AlarmEvent, AlarmState>
+    implements AlarmBloc {}
+
 class MockCameraRepository extends Mock implements CameraRepository {}
+
 class MockDecoderPool extends Mock implements DecoderPool {}
 
 void main() {
@@ -73,7 +72,9 @@ void main() {
       expect(find.text('4'), findsOneWidget);
     });
 
-    testWidgets('switching to 1x1 layout renders single slot focus', (tester) async {
+    testWidgets('switching to 1x1 layout renders single slot focus', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildTestWidget());
 
       final cycler = find.byKey(const Key('layoutCyclerButton'));
@@ -97,7 +98,9 @@ void main() {
       expect(find.text('Assign Camera'), findsOneWidget);
     });
 
-    testWidgets('clicking Select opens camera picker bottom sheet', (tester) async {
+    testWidgets('clicking Select opens camera picker bottom sheet', (
+      tester,
+    ) async {
       final cameras = [
         const Camera(
           id: 'cam_1',
@@ -109,9 +112,11 @@ void main() {
           codec: 'H264',
           ptzCapable: false,
           status: 'CONNECTED',
-        )
+        ),
       ];
-      when(() => mockCameraBloc.state).thenReturn(CameraLoaded(cameras: cameras));
+      when(
+        () => mockCameraBloc.state,
+      ).thenReturn(CameraLoaded(cameras: cameras));
 
       await tester.pumpWidget(buildTestWidget());
 
@@ -136,42 +141,51 @@ void main() {
       expect(find.text('9'), findsOneWidget);
     });
 
-    testWidgets('tapping an assigned camera tile switches layout to 1x1 focus mode', (tester) async {
-      final cameras = [
-        const Camera(
-          id: 'cam_1',
-          siteId: 'site_1',
-          name: 'Front Entrance Gate',
-          ipAddress: '192.168.1.1',
-          rtspUrl: 'rtsp://...',
-          onvifProfile: 'S',
-          codec: 'H264',
-          ptzCapable: true,
-          status: 'CONNECTED',
-        )
-      ];
-      when(() => mockCameraBloc.state).thenReturn(CameraLoaded(cameras: cameras));
-      when(() => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'))
-          .thenAnswer((_) async => 'https://example.com/stream.m3u8');
+    testWidgets(
+      'tapping an assigned camera tile switches layout to 1x1 focus mode',
+      (tester) async {
+        final cameras = [
+          const Camera(
+            id: 'cam_1',
+            siteId: 'site_1',
+            name: 'Front Entrance Gate',
+            ipAddress: '192.168.1.1',
+            rtspUrl: 'rtsp://...',
+            onvifProfile: 'S',
+            codec: 'H264',
+            ptzCapable: true,
+            status: 'CONNECTED',
+          ),
+        ];
+        when(
+          () => mockCameraBloc.state,
+        ).thenReturn(CameraLoaded(cameras: cameras));
+        when(
+          () => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'),
+        ).thenAnswer((_) async => 'https://example.com/stream.m3u8');
 
-      await tester.pumpWidget(buildTestWidget());
+        await tester.pumpWidget(buildTestWidget());
 
-      // Open camera picker and assign camera to slot 1
-      await tester.tap(find.text('Assign Camera'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Front Entrance Gate'));
-      await tester.pumpAndSettle();
+        // Open camera picker and assign camera to slot 1
+        await tester.tap(find.text('Assign Camera'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Front Entrance Gate'));
+        await tester.pumpAndSettle();
 
-      // Currently in 2x2 grid (slots 1, 2, 3, 4 are present)
-      expect(find.text('2'), findsOneWidget);
+        // Currently in 2x2 grid (slots 1, 2, 3, 4 are present)
+        expect(find.text('2'), findsOneWidget);
 
-      // Tap slot 1 (assigned camera)
-      await tester.tap(find.text('Front Entrance Gate'));
-      await tester.pumpAndSettle();
+        // Tap slot 1 (assigned camera)
+        await tester.tap(find.text('Front Entrance Gate'));
+        await tester.pumpAndSettle();
 
-      // Should switch layout to 1x1 (slot 2 is no longer rendered)
-      expect(find.text('2'), findsNothing);
-      expect(find.text('[1]'), findsOneWidget);
-    });
+        // Should switch layout to 1x1 (slot 2 is no longer rendered)
+        expect(find.text('2'), findsNothing);
+        expect(
+          find.textContaining('Camera: Front Entrance Gate'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

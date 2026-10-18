@@ -17,10 +17,7 @@ class FetchCameras extends CameraEvent {
 }
 
 class UpdateCameraStatus extends CameraEvent {
-  const UpdateCameraStatus({
-    required this.cameraId,
-    required this.status,
-  });
+  const UpdateCameraStatus({required this.cameraId, required this.status});
 
   final String cameraId;
   final String status;

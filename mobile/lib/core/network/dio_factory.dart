@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:app/core/auth/auth_bloc.dart';
-import 'package:app/core/constants/app_constants.dart';
+import 'package:app/core/config/app_config.dart';
 import 'package:app/core/network/dio_retry_interceptor.dart';
 import 'package:app/core/network/refresh_token_interceptor.dart';
 import 'package:app/core/storage/secure_storage_service.dart';
@@ -17,12 +17,14 @@ class DioFactory {
     required SecureStorageService storage,
     required AuthBloc authBloc, // Inject AuthBloc
     required List<String> trustedCAsPem, // Intermediate CA PEM certificates
+    AppConfig? config,
   }) {
+    final effectiveConfig = config ?? AppConfig.instance;
     final dio = Dio(
       BaseOptions(
-        baseUrl: AppConstants.apiBaseUrl,
-        connectTimeout: AppConstants.connectTimeout,
-        receiveTimeout: AppConstants.receiveTimeout,
+        baseUrl: effectiveConfig.apiBaseUrl,
+        connectTimeout: effectiveConfig.connectTimeout,
+        receiveTimeout: effectiveConfig.receiveTimeout,
         headers: const <String, dynamic>{'Content-Type': 'application/json'},
       ),
     );
@@ -35,8 +37,9 @@ class DioFactory {
       createHttpClient: () {
         final SecurityContext securityContext;
 
-        if (bypassPinning) {
-          // In local dev bypass mode, trust all system certificates
+        if (bypassPinning || trustedCAsPem.every((pem) => pem.trim().isEmpty)) {
+          // Normal builds use the platform trust store. A clean trust store is
+          // created only when real pinned CA certificates were supplied.
           securityContext = SecurityContext.defaultContext;
         } else {
           // Initialize a clean SecurityContext and ONLY trust our Intermediate CA(s)
@@ -65,7 +68,10 @@ class DioFactory {
     // Add interceptors
     dio.interceptors.addAll([
       RefreshTokenInterceptor(storage: storage, dio: dio, authBloc: authBloc),
-      DioRetryInterceptor(dio: dio),
+      DioRetryInterceptor(
+        dio: dio,
+        maxRetries: effectiveConfig.maxRetryAttempts,
+      ),
       // Never log sensitive raw token bytes to console output
       LogInterceptor(requestHeader: false, responseHeader: false),
     ]);

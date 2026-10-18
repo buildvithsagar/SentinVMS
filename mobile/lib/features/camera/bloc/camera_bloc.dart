@@ -6,15 +6,15 @@ import 'package:app/features/camera/data/camera_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CameraBloc extends Bloc<CameraEvent, CameraState> {
-  CameraBloc({
-    required this.cameraRepository,
-    required this.webSocketService,
-  }) : super(const CameraInitial()) {
+  CameraBloc({required this.cameraRepository, required this.webSocketService})
+    : super(const CameraInitial()) {
     on<FetchCameras>(_onFetchCameras);
     on<UpdateCameraStatus>(_onUpdateCameraStatus);
 
     _eventSubscription = webSocketService.eventStream.listen(_onWebSocketEvent);
-    _statusSubscription = webSocketService.statusStream.listen(_onWebSocketStatusChanged);
+    _statusSubscription = webSocketService.statusStream.listen(
+      _onWebSocketStatusChanged,
+    );
   }
 
   final CameraRepository cameraRepository;

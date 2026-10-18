@@ -57,6 +57,15 @@ class DioRetryInterceptor extends Interceptor {
   }
 
   bool _shouldRetry(DioException err) {
+    final method = err.requestOptions.method.toUpperCase();
+    final explicitlyRetryable = err.requestOptions.extra['retryable'] == true;
+    if (!explicitlyRetryable &&
+        method != 'GET' &&
+        method != 'HEAD' &&
+        method != 'OPTIONS') {
+      return false;
+    }
+
     if (err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.sendTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
@@ -69,7 +78,8 @@ class DioRetryInterceptor extends Interceptor {
     }
 
     final statusCode = err.response?.statusCode;
-    if (statusCode != null && (statusCode == 502 || statusCode == 503 || statusCode == 504)) {
+    if (statusCode != null &&
+        (statusCode == 502 || statusCode == 503 || statusCode == 504)) {
       return true;
     }
 

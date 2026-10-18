@@ -50,15 +50,22 @@ class _TimelineScrubberState extends State<TimelineScrubber> {
   /// Calculated visible window start date/time.
   DateTime get _windowStart {
     final span = widget.spanDuration;
-    final dayStart = DateTime(widget.date.year, widget.date.month, widget.date.day);
+    final dayStart = DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+    );
     final dayEnd = dayStart.add(const Duration(days: 1));
 
     if (span.inHours >= 24) {
       return dayStart;
     }
 
-    final center = widget.currentTime ?? dayStart.add(const Duration(hours: 12));
-    var start = center.subtract(Duration(milliseconds: span.inMilliseconds ~/ 2));
+    final center =
+        widget.currentTime ?? dayStart.add(const Duration(hours: 12));
+    var start = center.subtract(
+      Duration(milliseconds: span.inMilliseconds ~/ 2),
+    );
     var end = start.add(span);
 
     if (start.isBefore(dayStart)) {
@@ -73,8 +80,10 @@ class _TimelineScrubberState extends State<TimelineScrubber> {
 
   /// Calculated visible window end date/time.
   DateTime get _windowEnd => _windowStart.add(
-        widget.spanDuration.inHours >= 24 ? const Duration(days: 1) : widget.spanDuration,
-      );
+    widget.spanDuration.inHours >= 24
+        ? const Duration(days: 1)
+        : widget.spanDuration,
+  );
 
   /// Maps an x-offset (in the full widget width) back to a [DateTime].
   DateTime _offsetToTime(double dx, double fullWidth) {
@@ -245,10 +254,15 @@ class _TimelinePainter extends CustomPainter {
     final segmentPaint = Paint()..style = PaintingStyle.fill;
 
     for (final segment in segments) {
-      final clampedStart = segment.startTime.isBefore(windowStart) ? windowStart : segment.startTime;
-      final clampedEnd = segment.endTime.isAfter(windowEnd) ? windowEnd : segment.endTime;
+      final clampedStart = segment.startTime.isBefore(windowStart)
+          ? windowStart
+          : segment.startTime;
+      final clampedEnd = segment.endTime.isAfter(windowEnd)
+          ? windowEnd
+          : segment.endTime;
 
-      if (clampedStart.isAfter(clampedEnd) || clampedStart.isAtSameMomentAs(clampedEnd)) {
+      if (clampedStart.isAfter(clampedEnd) ||
+          clampedStart.isAtSameMomentAs(clampedEnd)) {
         continue;
       }
 
@@ -402,10 +416,7 @@ class _TimelinePainter extends CustomPainter {
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          Color(0xFF60A5FA),
-          Color(0xFF2563EB),
-        ],
+        colors: [Color(0xFF60A5FA), Color(0xFF2563EB)],
       ).createShader(playheadRect)
       ..strokeWidth = 1.5;
 

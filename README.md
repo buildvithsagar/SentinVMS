@@ -57,6 +57,10 @@ The mobile client located in [`/mobile`](file:///c:/Users/SAGAR/vmsapp/SentinVMS
 
 For detailed mobile setup and build instructions, refer to [`mobile/README.md`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/README.md).
 
+The implemented CCTV streaming demo, including Direct RTSP, the H.265 Smart
+Gateway, WebRTC/HLS delivery, private-network access, and verification status,
+is documented in [`RTSP_SMART_GATEWAY_IMPLEMENTATION.md`](RTSP_SMART_GATEWAY_IMPLEMENTATION.md).
+
 ---
 
 ## 🚀 Quickstart

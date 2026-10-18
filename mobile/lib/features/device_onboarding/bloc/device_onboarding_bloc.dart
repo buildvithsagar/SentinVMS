@@ -29,13 +29,13 @@ class DeviceOnboardSubmitted extends DeviceOnboardingEvent {
 
   @override
   List<Object?> get props => [
-        category,
-        serialNumber,
-        deviceName,
-        username,
-        password,
-        mode,
-      ];
+    category,
+    serialNumber,
+    deviceName,
+    username,
+    password,
+    mode,
+  ];
 }
 
 class DeviceOnboardReset extends DeviceOnboardingEvent {
@@ -74,9 +74,8 @@ class DeviceOnboardingFailure extends DeviceOnboardingState {
 // --- Bloc ---
 class DeviceOnboardingBloc
     extends Bloc<DeviceOnboardingEvent, DeviceOnboardingState> {
-  DeviceOnboardingBloc({
-    required this._repository,
-  })  : super(const DeviceOnboardingInitial()) {
+  DeviceOnboardingBloc({required this._repository})
+    : super(const DeviceOnboardingInitial()) {
     on<DeviceOnboardSubmitted>(_onDeviceOnboardSubmitted);
     on<DeviceOnboardReset>(_onDeviceOnboardReset);
   }

@@ -100,12 +100,15 @@ class VmsDrawer extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
+                    Divider(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      height: 1,
+                    ),
                   ],
                 ),
               ),
             ),
-            
+
             // Menu Items
             Expanded(
               child: ListView(
@@ -141,14 +144,23 @@ class VmsDrawer extends StatelessWidget {
                     title: 'Export History',
                     route: '/exports',
                   ),
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.settings_input_antenna,
+                    title: 'Stream Diagnostics',
+                    route: '/stream_demo',
+                  ),
                   const SizedBox(height: 16),
-                  Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
+                  Divider(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    height: 1,
+                  ),
                   const SizedBox(height: 16),
                   _buildLogoutItem(context),
                 ],
               ),
             ),
-            
+
             // Bottom Footer
             Padding(
               padding: const EdgeInsets.all(24),
@@ -182,9 +194,13 @@ class VmsDrawer extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: isActive ? const Color(0xFF2DD4BF).withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.01),
+          color: isActive
+              ? const Color(0xFF2DD4BF).withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.01),
           border: Border.all(
-            color: isActive ? const Color(0xFF2DD4BF).withValues(alpha: 0.2) : Colors.transparent,
+            color: isActive
+                ? const Color(0xFF2DD4BF).withValues(alpha: 0.2)
+                : Colors.transparent,
           ),
         ),
         child: Material(
@@ -193,7 +209,10 @@ class VmsDrawer extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            leading: Icon(icon, color: isActive ? const Color(0xFF2DD4BF) : Colors.white70),
+            leading: Icon(
+              icon,
+              color: isActive ? const Color(0xFF2DD4BF) : Colors.white70,
+            ),
             title: Text(
               title,
               style: TextStyle(

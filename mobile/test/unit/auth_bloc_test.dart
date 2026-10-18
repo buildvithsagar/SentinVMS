@@ -30,10 +30,8 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       'emits Authenticated when AuthLoggedIn is added',
       build: () => authBloc,
-      act: (bloc) => bloc.add(const AuthLoggedIn(
-        accessToken: 'access-token',
-        user: user,
-      )),
+      act: (bloc) =>
+          bloc.add(const AuthLoggedIn(accessToken: 'access-token', user: user)),
       expect: () => [
         const Authenticated(accessToken: 'access-token', user: user),
       ],
@@ -43,9 +41,7 @@ void main() {
       'emits Unauthenticated when AuthLoggedOut is added',
       build: () => authBloc,
       act: (bloc) => bloc.add(const AuthLoggedOut()),
-      expect: () => [
-        const Unauthenticated(),
-      ],
+      expect: () => [const Unauthenticated()],
     );
 
     blocTest<AuthBloc, AuthState>(
@@ -54,9 +50,7 @@ void main() {
       build: () => authBloc,
       seed: () => const Authenticated(accessToken: 'old-token', user: user),
       act: (bloc) => bloc.add(const AuthTokenRefreshed(token: 'new-token')),
-      expect: () => [
-        const Authenticated(accessToken: 'new-token', user: user),
-      ],
+      expect: () => [const Authenticated(accessToken: 'new-token', user: user)],
     );
 
     blocTest<AuthBloc, AuthState>(

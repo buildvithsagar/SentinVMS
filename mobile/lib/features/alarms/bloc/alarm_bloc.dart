@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:app/features/alarms/bloc/alarm_event.dart';
 import 'package:app/features/alarms/bloc/alarm_state.dart';
 import 'package:app/features/alarms/data/alarm_repository.dart';
@@ -6,9 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Manages alarm lifecycle: fetching, real-time ingestion, and acknowledgement.
 class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
-  AlarmBloc({
-    required this.alarmRepository,
-  })  : super(const AlarmInitial()) {
+  AlarmBloc({required this.alarmRepository}) : super(const AlarmInitial()) {
     on<FetchAlarms>(_onFetchAlarms);
     on<AlarmAcknowledged>(_onAlarmAcknowledged);
     on<AlarmReceived>(_onAlarmReceived);
@@ -56,14 +56,17 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     }
   }
 
-  void _onAlarmReceived(
-    AlarmReceived event,
-    Emitter<AlarmState> emit,
-  ) {
+  void _onAlarmReceived(AlarmReceived event, Emitter<AlarmState> emit) {
     final currentState = state;
     final newAlarm = Alarm.fromJson(event.alarmData);
     if (currentState is AlarmLoaded) {
-      emit(AlarmLoaded(alarms: [newAlarm, ...currentState.alarms]));
+      // O(1) Deque push to front & O(1) evict oldest if capacity > 200
+      final queue = DoubleLinkedQueue<Alarm>.from(currentState.alarms)
+        ..addFirst(newAlarm);
+      if (queue.length > 200) {
+        queue.removeLast();
+      }
+      emit(AlarmLoaded(alarms: queue.toList()));
     } else {
       emit(AlarmLoaded(alarms: [newAlarm]));
     }

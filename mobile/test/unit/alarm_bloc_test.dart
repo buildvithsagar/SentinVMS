@@ -39,15 +39,13 @@ void main() {
     blocTest<AlarmBloc, AlarmState>(
       'emits [AlarmLoading, AlarmLoaded] when FetchAlarms is added successfully',
       build: () {
-        when(() => alarmRepository.getAlarms(siteId: any(named: 'siteId')))
-            .thenAnswer((_) async => mockAlarms);
+        when(
+          () => alarmRepository.getAlarms(siteId: any(named: 'siteId')),
+        ).thenAnswer((_) async => mockAlarms);
         return alarmBloc;
       },
       act: (bloc) => bloc.add(const FetchAlarms()),
-      expect: () => [
-        const AlarmLoading(),
-        AlarmLoaded(alarms: mockAlarms),
-      ],
+      expect: () => [const AlarmLoading(), AlarmLoaded(alarms: mockAlarms)],
       verify: (_) {
         verify(() => alarmRepository.getAlarms()).called(1);
       },
@@ -56,8 +54,9 @@ void main() {
     blocTest<AlarmBloc, AlarmState>(
       'emits [AlarmLoading, AlarmError] when FetchAlarms fails',
       build: () {
-        when(() => alarmRepository.getAlarms(siteId: any(named: 'siteId')))
-            .thenThrow(const AlarmException('Database connection failed'));
+        when(
+          () => alarmRepository.getAlarms(siteId: any(named: 'siteId')),
+        ).thenThrow(const AlarmException('Database connection failed'));
         return alarmBloc;
       },
       act: (bloc) => bloc.add(const FetchAlarms()),
@@ -75,8 +74,9 @@ void main() {
           acknowledgedBy: 'current_user',
           acknowledgedAt: DateTime(2026, 6, 25, 12, 5),
         );
-        when(() => alarmRepository.acknowledgeAlarm(alarmId: 'alarm-1'))
-            .thenAnswer((_) async => ackedAlarm);
+        when(
+          () => alarmRepository.acknowledgeAlarm(alarmId: 'alarm-1'),
+        ).thenAnswer((_) async => ackedAlarm);
         return alarmBloc;
       },
       seed: () => AlarmLoaded(alarms: mockAlarms),
@@ -92,8 +92,9 @@ void main() {
         ];
       },
       verify: (_) {
-        verify(() => alarmRepository.acknowledgeAlarm(alarmId: 'alarm-1'))
-            .called(1);
+        verify(
+          () => alarmRepository.acknowledgeAlarm(alarmId: 'alarm-1'),
+        ).called(1);
       },
     );
 

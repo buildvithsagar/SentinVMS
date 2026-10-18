@@ -32,19 +32,19 @@ mindmap
 
 ### 🔑 Feature 1: Enterprise Authentication & Auto Token Refresh
 - **What it is**: Secure login with OTP verification, encrypted token persistence, and background token refresh.
-- **Implementation**: [`AuthBloc`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/auth/auth_bloc.dart), [`SecureStorageService`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/auth/secure_storage_service.dart), [`RefreshTokenInterceptor`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/network/refresh_token_interceptor.dart). Handles HTTP `401` transparently.
+- **Implementation**: [`AuthBloc`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/auth/auth_bloc.dart), [`SecureStorageService`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/storage/secure_storage_service.dart), [`RefreshTokenInterceptor`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/network/refresh_token_interceptor.dart). Handles HTTP `401` transparently.
 
 ### 🎛️ Feature 2: Dynamic Multi-Grid Live Command Center (`1x1`, `2x2`, `3x3`, `4x4`)
 - **What it is**: High-density CCTV live streaming layout supporting 1, 4, 9, and 16 camera grid viewports with zero-gap tile placement.
-- **Implementation**: [`LiveGridPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/live_view/live_grid_page.dart). Grid cycler badge toggles densities `[1]`, `[4]`, `[9]`, `[16]`.
+- **Implementation**: [`LiveGridPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/live_view/presentation/pages/live_grid_page.dart). Grid cycler badge toggles densities `[1]`, `[4]`, `[9]`, `[16]`.
 
 ### 🔍 Feature 3: Single Camera Screen Focus & Auto-Transition on Tap
 - **What it is**: Tapping any assigned camera tile in a multi-camera grid immediately expands that stream into 1x1 Single View focus mode.
-- **Implementation**: `_buildGridSlot(int index)` gesture handler in [`live_grid_page.dart`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/live_view/live_grid_page.dart#L545) updating `_layoutGridSize = 1`.
+- **Implementation**: `_buildGridSlot(int index)` gesture handler in [`live_grid_page.dart`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/live_view/presentation/pages/live_grid_page.dart#L545) updating `_layoutGridSize = 1`.
 
 ### 🕹️ Feature 4: Scoped PTZ (Pan-Tilt-Zoom) Camera Controls
 - **What it is**: Directional D-pad and Zoom controls for pan, tilt, and zoom adjustment, hidden on multi-grids to avoid clutter and active only in Single View mode.
-- **Implementation**: [`VideoTile`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/live_view/widgets/video_tile.dart) accepts `showPtzOverlay: _layoutGridSize == 1 && _isPTZActive`.
+- **Implementation**: [`VideoTile`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/live_view/presentation/widgets/video_tile.dart) accepts `showPtzOverlay: _layoutGridSize == 1 && _isPTZActive`.
 
 ### ⚡ Feature 5: Mobile Hardware Decoder Pool (`DecoderPool`)
 - **What it is**: LRU hardware decoder lease and eviction manager for mobile GPU/CPU decoders.
@@ -52,23 +52,23 @@ mindmap
 
 ### 📡 Feature 6: ONVIF Auto-Discovery & Quick Device Onboarding
 - **What it is**: Subnet ONVIF scan, QR/barcode scanner, and manual IP entry with a clean `+` quick action button on the Live Grid bar.
-- **Implementation**: [`DeviceCategoryPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/device_onboarding/presentation/device_category_page.dart), [`ScannerView`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/device_onboarding/presentation/widgets/scanner_view.dart), and `+` IconButton.
+- **Implementation**: [`DeviceCategoryPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/device_onboarding/presentation/pages/device_category_page.dart), [`ScannerView`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/device_onboarding/presentation/widgets/scanner_view.dart), and `+` IconButton.
 
 ### ⏱️ Feature 7: Interactive 24-Hour Timeline Playback Scrubber (`/playback`)
 - **What it is**: Recorded footage playback with a gesture-based 24-hour timeline scrubber, color-coded event segments, variable speed control (`0.5x` to `16.0x`), and frame snapshots.
-- **Implementation**: [`TimelineScrubber`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/playback/widgets/timeline_scrubber.dart) and [`PlaybackPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/playback/presentation/playback_page.dart).
+- **Implementation**: [`TimelineScrubber`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/playback/widgets/timeline_scrubber.dart) and [`PlaybackPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/playback/presentation/pages/playback_page.dart).
 
 ### 🚨 Feature 8: Real-Time AI Telemetry Alarms & Socket.io Sync (`/alarms`)
 - **What it is**: Instant push notification and list rendering of incoming AI analytics threats (`INTRUSION`, `FIRE`, `LOITERING`, `VANDALISM`) with acknowledgment workflows.
-- **Implementation**: [`AlarmBloc`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/alarms/bloc/alarm_bloc.dart), [`WebSocketService`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/network/websocket_service.dart), and [`AlarmListPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/alarms/presentation/alarm_list_page.dart).
+- **Implementation**: [`AlarmBloc`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/alarms/bloc/alarm_bloc.dart), [`WebSocketService`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/network/websocket_service.dart), and [`AlarmListPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/alarms/presentation/pages/alarm_list_page.dart).
 
 ### ⚠️ Feature 9: Emergency Panic Alert & Control Room Dispatch
 - **What it is**: One-touch emergency protocol dispatcher with a 5-second cancelable overlay for Siren and Control Room alarm triggers.
-- **Implementation**: `_showPanicDialog()` & `_startPanicCountdown()` in [`live_grid_page.dart`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/live_view/live_grid_page.dart#L198).
+- **Implementation**: `_showPanicDialog()` & `_startPanicCountdown()` in [`live_grid_page.dart`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/live_view/presentation/pages/live_grid_page.dart#L198).
 
 ### 📦 Feature 10: Cryptographic Export Vault & Offline Connectivity Banner
 - **What it is**: Time-bound video clip export with cryptographic SHA-256 watermark verification, progress polling, and offline banner notification.
-- **Implementation**: [`ExportPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/export/presentation/export_page.dart) and [`ConnectivityBanner`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/widgets/connectivity_banner.dart).
+- **Implementation**: [`ExportPage`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/features/export/presentation/pages/export_page.dart) and [`ConnectivityBanner`](file:///c:/Users/SAGAR/vmsapp/SentinVMS/mobile/lib/core/widgets/connectivity_banner.dart).
 
 ---
 

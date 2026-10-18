@@ -10,8 +10,11 @@ enum WebSocketStatus { connected, disconnected, reconnecting }
 class WebSocketService {
   WebSocketService({
     required this.authBloc,
+    String? wsUrl,
+    this._enabled = true,
     Logger? logger,
-  }) : _logger = logger ?? Logger() {
+  }) : _wsUrl = wsUrl ?? AppConstants.wsUrl,
+       _logger = logger ?? Logger() {
     _authSubscription = authBloc.stream.listen(_onAuthStateChanged);
     // Trigger initial check in case already authenticated
     _onAuthStateChanged(authBloc.state);
@@ -19,7 +22,9 @@ class WebSocketService {
 
   final AuthBloc authBloc;
   final Logger _logger;
-  
+  final String _wsUrl;
+  final bool _enabled;
+
   late final StreamSubscription<AuthState> _authSubscription;
   socket_io.Socket? _socket;
   bool _isDisposed = false;
@@ -43,13 +48,17 @@ class WebSocketService {
   void _onAuthStateChanged(AuthState state) {
     if (state is Authenticated) {
       if (_currentAccessToken != state.accessToken) {
-        _logger.i('WebSocket Auth state changed (Authenticated). Initializing Socket.io.');
+        _logger.i(
+          'WebSocket Auth state changed (Authenticated). Initializing Socket.io.',
+        );
         _currentAccessToken = state.accessToken;
         _connect();
       }
     } else {
       if (_currentAccessToken != null) {
-        _logger.i('WebSocket Auth state changed (Unauthenticated). Closing Socket.io.');
+        _logger.i(
+          'WebSocket Auth state changed (Unauthenticated). Closing Socket.io.',
+        );
         _currentAccessToken = null;
         _disconnect();
       }
@@ -57,21 +66,26 @@ class WebSocketService {
   }
 
   void _connect() {
-    if (_isDisposed || _currentAccessToken == null) return;
+    if (!_enabled || _isDisposed || _currentAccessToken == null) return;
 
     _disconnectSocketOnly();
     _updateStatus(WebSocketStatus.reconnecting);
 
-    const wsBase = AppConstants.wsUrl;
-    _logger.d('Connecting to Socket.io Broadcaster at: $wsBase with path: /ws/v5/telemetry');
+    final wsBase = _wsUrl;
+    _logger.d(
+      'Connecting to Socket.io Broadcaster at: $wsBase with path: /ws/v5/telemetry',
+    );
 
     try {
-      _socket = socket_io.io(wsBase, socket_io.OptionBuilder()
-        .setTransports(['websocket'])
-        .setPath('/ws/v5/telemetry')
-        .setAuth({'token': _currentAccessToken})
-        .disableReconnection()
-        .build());
+      _socket = socket_io.io(
+        wsBase,
+        socket_io.OptionBuilder()
+            .setTransports(['websocket'])
+            .setPath('/ws/v5/telemetry')
+            .setAuth({'token': _currentAccessToken})
+            .disableReconnection()
+            .build(),
+      );
 
       _socket!.onConnect((_) {
         _logger.i('Socket.io connected successfully.');
@@ -109,7 +123,7 @@ class WebSocketService {
           });
         }
       });
-      
+
       _socket!.on('storage.alert', (data) {
         _logger.d('Socket.io received storage alert: $data');
         if (data is Map<String, dynamic>) {
@@ -119,7 +133,6 @@ class WebSocketService {
           });
         }
       });
-
     } catch (e) {
       _logger.e('Socket.io initialization failed: $e');
       _updateStatus(WebSocketStatus.disconnected);
@@ -133,6 +146,7 @@ class WebSocketService {
   }
 
   void _disconnect() {
+    _subscribedSites.clear();
     _disconnectSocketOnly();
     _updateStatus(WebSocketStatus.disconnected);
   }

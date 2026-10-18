@@ -3,10 +3,8 @@ import 'package:flutter/widgets.dart';
 import 'package:logger/logger.dart';
 
 class AppLifecycleObserver with WidgetsBindingObserver {
-  AppLifecycleObserver({
-    required this.webSocketService,
-    Logger? logger,
-  }) : _logger = logger ?? Logger();
+  AppLifecycleObserver({required this.webSocketService, Logger? logger})
+    : _logger = logger ?? Logger();
 
   final WebSocketService webSocketService;
   final Logger _logger;
@@ -38,14 +36,18 @@ class AppLifecycleObserver with WidgetsBindingObserver {
   }
 
   void _onResumed() {
-    _logger.i('App returned to foreground. Re-syncing telemetry and WebSocket connection.');
+    _logger.i(
+      'App returned to foreground. Re-syncing telemetry and WebSocket connection.',
+    );
     if (webSocketService.authBloc.state.toString().contains('Authenticated')) {
       // Stream reconnection triggers via AuthBloc state listener inside WebSocketService
     }
   }
 
   void _onPaused() {
-    _logger.i('App backgrounded. Conserving battery and network decoder resources.');
+    _logger.i(
+      'App backgrounded. Conserving battery and network decoder resources.',
+    );
   }
 
   void _onDetached() {

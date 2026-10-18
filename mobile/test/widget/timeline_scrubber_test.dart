@@ -25,7 +25,9 @@ void main() {
       ),
     ];
 
-    testWidgets('renders TimelineScrubber and CustomPaint widget', (tester) async {
+    testWidgets('renders TimelineScrubber and CustomPaint widget', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

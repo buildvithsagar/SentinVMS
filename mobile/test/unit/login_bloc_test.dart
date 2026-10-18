@@ -17,7 +17,8 @@ void main() {
     const email = 'test@example.com';
     const password = 'secure-password';
     const otpCode = '123456';
-    const customerId = 'MOCKTNA1'; // Inferred from test@example.com (does not contain tenantb)
+    const customerId =
+        'MOCKTNA1'; // Inferred from test@example.com (does not contain tenantb)
     const user = UserProfile(
       userId: 'user-id',
       customerId: customerId,
@@ -41,16 +42,13 @@ void main() {
     blocTest<LoginBloc, LoginState>(
       'emits [LoginLoading, LoginOtpRequired] when LoginSubmitted succeeds',
       build: () {
-        when(() => authRepository.loginStep1(
-              email: email,
-              password: password,
-            )).thenAnswer((_) async => 'OTP_SENT');
+        when(
+          () => authRepository.loginStep1(email: email, password: password),
+        ).thenAnswer((_) async => 'OTP_SENT');
         return loginBloc;
       },
-      act: (bloc) => bloc.add(const LoginSubmitted(
-        email: email,
-        password: password,
-      )),
+      act: (bloc) =>
+          bloc.add(const LoginSubmitted(email: email, password: password)),
       expect: () => [
         const LoginLoading(),
         const LoginOtpRequired(email: email),
@@ -60,22 +58,20 @@ void main() {
     blocTest<LoginBloc, LoginState>(
       'emits [LoginLoading, LoginSuccess] when LoginOtpSubmitted succeeds',
       build: () {
-        when(() => authRepository.loginStep2(
-              email: email,
-              otpCode: otpCode,
-              customerId: customerId,
-            )).thenAnswer(
-          (_) async => const AuthResult(
-            accessToken: 'access-token',
-            user: user,
+        when(
+          () => authRepository.loginStep2(
+            email: email,
+            otpCode: otpCode,
+            customerId: customerId,
           ),
+        ).thenAnswer(
+          (_) async =>
+              const AuthResult(accessToken: 'access-token', user: user),
         );
         return loginBloc;
       },
-      act: (bloc) => bloc.add(const LoginOtpSubmitted(
-        email: email,
-        otpCode: otpCode,
-      )),
+      act: (bloc) =>
+          bloc.add(const LoginOtpSubmitted(email: email, otpCode: otpCode)),
       expect: () => [
         const LoginLoading(),
         const LoginSuccess(accessToken: 'access-token', user: user),
@@ -85,20 +81,18 @@ void main() {
     blocTest<LoginBloc, LoginState>(
       'emits [LoginLoading, LoginFailure] when credentials are invalid on Step 1',
       build: () {
-        when(() => authRepository.loginStep1(
-              email: email,
-              password: password,
-            )).thenThrow(const UnauthorizedException());
+        when(
+          () => authRepository.loginStep1(email: email, password: password),
+        ).thenThrow(const UnauthorizedException());
         return loginBloc;
       },
-      act: (bloc) => bloc.add(const LoginSubmitted(
-        email: email,
-        password: password,
-      )),
+      act: (bloc) =>
+          bloc.add(const LoginSubmitted(email: email, password: password)),
       expect: () => [
         const LoginLoading(),
         const LoginFailure(
-          errorMessage: 'Invalid credentials. '
+          errorMessage:
+              'Invalid credentials. '
               'Please verify Email and Password.',
         ),
       ],
@@ -107,42 +101,38 @@ void main() {
     blocTest<LoginBloc, LoginState>(
       'emits [LoginLoading, LoginFailure] when OTP code is invalid on Step 2',
       build: () {
-        when(() => authRepository.loginStep2(
-              email: email,
-              otpCode: otpCode,
-              customerId: customerId,
-            )).thenThrow(const UnauthorizedException());
+        when(
+          () => authRepository.loginStep2(
+            email: email,
+            otpCode: otpCode,
+            customerId: customerId,
+          ),
+        ).thenThrow(const UnauthorizedException());
         return loginBloc;
       },
-      act: (bloc) => bloc.add(const LoginOtpSubmitted(
-        email: email,
-        otpCode: otpCode,
-      )),
+      act: (bloc) =>
+          bloc.add(const LoginOtpSubmitted(email: email, otpCode: otpCode)),
       expect: () => [
         const LoginLoading(),
-        const LoginFailure(
-          errorMessage: 'Invalid OTP code. Please try again.',
-        ),
+        const LoginFailure(errorMessage: 'Invalid OTP code. Please try again.'),
       ],
     );
 
     blocTest<LoginBloc, LoginState>(
       'emits [LoginLoading, LoginFailure] when rate limited on Step 1',
       build: () {
-        when(() => authRepository.loginStep1(
-              email: email,
-              password: password,
-            )).thenThrow(const RateLimitException());
+        when(
+          () => authRepository.loginStep1(email: email, password: password),
+        ).thenThrow(const RateLimitException());
         return loginBloc;
       },
-      act: (bloc) => bloc.add(const LoginSubmitted(
-        email: email,
-        password: password,
-      )),
+      act: (bloc) =>
+          bloc.add(const LoginSubmitted(email: email, password: password)),
       expect: () => [
         const LoginLoading(),
         const LoginFailure(
-          errorMessage: 'Too many failed login attempts. '
+          errorMessage:
+              'Too many failed login attempts. '
               'Please try again after 1 minute.',
         ),
       ],
@@ -151,16 +141,13 @@ void main() {
     blocTest<LoginBloc, LoginState>(
       'emits [LoginLoading, LoginFailure] on network exception on Step 1',
       build: () {
-        when(() => authRepository.loginStep1(
-              email: email,
-              password: password,
-            )).thenThrow(const NetworkException('Server down'));
+        when(
+          () => authRepository.loginStep1(email: email, password: password),
+        ).thenThrow(const NetworkException('Server down'));
         return loginBloc;
       },
-      act: (bloc) => bloc.add(const LoginSubmitted(
-        email: email,
-        password: password,
-      )),
+      act: (bloc) =>
+          bloc.add(const LoginSubmitted(email: email, password: password)),
       expect: () => [
         const LoginLoading(),
         const LoginFailure(errorMessage: 'Connection failure: Server down'),
@@ -171,9 +158,7 @@ void main() {
       'emits [LoginInitial] on LoginReset',
       build: () => loginBloc,
       act: (bloc) => bloc.add(const LoginReset()),
-      expect: () => [
-        const LoginInitial(),
-      ],
+      expect: () => [const LoginInitial()],
     );
   });
 }

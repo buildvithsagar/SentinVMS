@@ -10,10 +10,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   void _onLoggedIn(AuthLoggedIn event, Emitter<AuthState> emit) {
-    emit(Authenticated(
-      accessToken: event.accessToken,
-      user: event.user,
-    ));
+    emit(Authenticated(accessToken: event.accessToken, user: event.user));
   }
 
   void _onLoggedOut(AuthLoggedOut event, Emitter<AuthState> emit) {
@@ -23,10 +20,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   void _onTokenRefreshed(AuthTokenRefreshed event, Emitter<AuthState> emit) {
     final currentState = state;
     if (currentState is Authenticated) {
-      emit(Authenticated(
-        accessToken: event.token,
-        user: currentState.user,
-      ));
+      emit(Authenticated(accessToken: event.token, user: currentState.user));
     }
   }
 }

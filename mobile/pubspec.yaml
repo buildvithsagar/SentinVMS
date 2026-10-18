@@ -34,6 +34,8 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_bloc: ^8.1.3
+  flutter_vlc_player: ^7.4.4
+  flutter_webrtc: ^1.6.2+hotfix.4
   get_it: ^7.6.0
   go_router: ^13.0.0
   intl: ^0.18.1
@@ -52,6 +54,18 @@ dev_dependencies:
   mocktail: ^1.0.4
   very_good_analysis: ^6.0.0
 
+# flutter_vlc_player 7.4.4 ships Android Pigeon channels generated with a
+# package prefix, while its published platform-interface 2.0.5 still uses the
+# old unprefixed channel names. Pin the matching interface from the 7.4.4
+# release commit so Direct RTSP can initialize on Android (including 16 KB
+# page-size devices supported by 7.4.4).
+dependency_overrides:
+  flutter_vlc_player_platform_interface:
+    git:
+      url: https://github.com/solid-software/flutter_vlc_player.git
+      ref: 988a7e6
+      path: flutter_vlc_player_platform_interface
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -64,6 +78,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+    - assets/3d_wireless_camera.png
+    - assets/3d_wired_camera.png
+    - assets/3d_ptz_camera.png
+    - assets/3d_nvr.png
+    - assets/3d_edge_gateway.png
 
 flutter_launcher_icons:
   android: "launcher_icon"

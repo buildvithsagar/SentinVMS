@@ -1,0 +1,48 @@
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:1.21.2
+    restart: unless-stopped
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    environment:
+      MTX_WEBRTCADDITIONALHOSTS: ${SENTINVMS_HOST_IP:-127.0.0.1}
+    ports:
+      - "8888:8888/tcp"
+      - "8889:8889/tcp"
+      - "8189:8189/tcp"
+      - "8189:8189/udp"
+
+  gateway:
+    build:
+      context: .
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - mediamtx
+    environment:
+      GATEWAY_BIND_ADDRESS: 0.0.0.0
+      GATEWAY_PORT: 8090
+      GATEWAY_ADVERTISED_HOST: ${SENTINVMS_HOST_IP:-127.0.0.1}
+      GATEWAY_API_TOKEN: ${SENTINVMS_GATEWAY_TOKEN:-}
+      MEDIAMTX_RTSP_BASE: rtsp://mediamtx:8554
+      MEDIAMTX_HLS_BASE: http://mediamtx:8888
+      PUBLIC_HLS_PORT: 8888
+      PUBLIC_WEBRTC_PORT: 8889
+      MAX_STREAMS: 4
+      STREAM_TTL_MINUTES: 30
+    ports:
+      - "8090:8090/tcp"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -fsS -H "Authorization: Bearer $${GATEWAY_API_TOKEN}"
+          http://127.0.0.1:8090/health >/dev/null &&
+          nc -z -w 2 mediamtx 8554 &&
+          nc -z -w 2 mediamtx 8888 &&
+          nc -z -w 2 mediamtx 8889
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 5s
+    stop_grace_period: 15s

@@ -1,0 +1,11 @@
+.dart_tool
+.env
+.tools
+build
+test
+*.cmd
+*.md
+*.ps1
+auto.*
+docker-compose.yml
+mediamtx*.yml

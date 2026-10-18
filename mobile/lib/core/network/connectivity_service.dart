@@ -6,14 +6,18 @@ enum ConnectivityStatus { online, offline }
 
 class ConnectivityService {
   ConnectivityService({
-    this._checkInterval = const Duration(seconds: 10),
+    this._checkInterval = const Duration(seconds: 30),
+    this.lookupHost = 'dns.google',
+    this.enabled = true,
     Logger? logger,
-  })  : _logger = logger ?? Logger() {
-    _init();
+  }) : _logger = logger ?? Logger() {
+    if (enabled) _init();
   }
 
   final Duration _checkInterval;
   final Logger _logger;
+  final String lookupHost;
+  final bool enabled;
   Timer? _timer;
 
   final _statusController = StreamController<ConnectivityStatus>.broadcast();
@@ -29,9 +33,11 @@ class ConnectivityService {
   }
 
   Future<ConnectivityStatus> checkConnection() async {
+    if (!enabled) return ConnectivityStatus.online;
     try {
-      final result = await InternetAddress.lookup('dns.google')
-          .timeout(const Duration(seconds: 5));
+      final result = await InternetAddress.lookup(
+        lookupHost,
+      ).timeout(const Duration(seconds: 5));
       if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
         _updateStatus(ConnectivityStatus.online);
         return ConnectivityStatus.online;

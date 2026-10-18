@@ -94,9 +94,7 @@ class RefreshTokenInterceptor extends QueuedInterceptor {
     final response = await refreshDio.post<Map<String, dynamic>>(
       'auth/refresh',
       options: Options(
-        headers: <String, dynamic>{
-          'Cookie': 'refreshToken=$refreshToken',
-        },
+        headers: <String, dynamic>{'Cookie': 'refreshToken=$refreshToken'},
       ),
     );
 

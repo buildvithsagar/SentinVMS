@@ -66,8 +66,9 @@ void main() {
     });
 
     test('onError attempts refresh on 401 Unauthorized', () async {
-      when(() => storage.getRefreshToken())
-          .thenAnswer((_) async => 'old-refresh-token');
+      when(
+        () => storage.getRefreshToken(),
+      ).thenAnswer((_) async => 'old-refresh-token');
       when(() => storage.storeRefreshToken(any())).thenAnswer((_) async {});
       when(() => storage.deleteRefreshToken()).thenAnswer((_) async {});
 
@@ -89,8 +90,9 @@ void main() {
       );
 
       var callCount = 0;
-      when(() => mockAdapter.fetch(any(), any(), any()))
-          .thenAnswer((invocation) async {
+      when(() => mockAdapter.fetch(any(), any(), any())).thenAnswer((
+        invocation,
+      ) async {
         callCount++;
         final options = invocation.positionalArguments[0] as RequestOptions;
         if (options.path.contains('auth/refresh')) {
@@ -118,21 +120,14 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       dio.interceptors.add(
-        RefreshTokenInterceptor(
-          storage: storage,
-          dio: dio,
-          authBloc: authBloc,
-        ),
+        RefreshTokenInterceptor(storage: storage, dio: dio, authBloc: authBloc),
       );
 
       final response = await dio.get<Map<String, dynamic>>('/some-endpoint');
 
       expect(response.statusCode, 200);
       expect(response.data?['data'], 'success');
-      expect(
-        (authBloc.state as Authenticated).accessToken,
-        'new-access-token',
-      );
+      expect((authBloc.state as Authenticated).accessToken, 'new-access-token');
       verify(() => storage.storeRefreshToken('new-refresh-token')).called(1);
     });
   });

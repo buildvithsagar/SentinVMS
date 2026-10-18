@@ -23,29 +23,32 @@ void main() {
       service.dispose();
     });
 
-    test('transitions to reconnecting when Authenticated state is received', () async {
-      service = WebSocketService(authBloc: authBloc);
-      expect(service.status, WebSocketStatus.disconnected);
+    test(
+      'transitions to reconnecting when Authenticated state is received',
+      () async {
+        service = WebSocketService(authBloc: authBloc);
+        expect(service.status, WebSocketStatus.disconnected);
 
-      authBloc.add(
-        const AuthLoggedIn(
-          accessToken: 'test-token',
-          user: UserProfile(
-            userId: '1',
-            customerId: 'tenant',
-            username: 'user',
-            baseRole: 'OPERATOR',
+        authBloc.add(
+          const AuthLoggedIn(
+            accessToken: 'test-token',
+            user: UserProfile(
+              userId: '1',
+              customerId: 'tenant',
+              username: 'user',
+              baseRole: 'OPERATOR',
+            ),
           ),
-        ),
-      );
+        );
 
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(
-        service.status,
-        anyOf(WebSocketStatus.reconnecting, WebSocketStatus.disconnected),
-      );
-      service.dispose();
-    });
+        expect(
+          service.status,
+          anyOf(WebSocketStatus.reconnecting, WebSocketStatus.disconnected),
+        );
+        service.dispose();
+      },
+    );
   });
 }

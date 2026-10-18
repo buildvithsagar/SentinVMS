@@ -2,28 +2,22 @@ import 'dart:async';
 
 import 'package:app/core/auth/user_profile.dart';
 import 'package:app/core/storage/secure_storage_service.dart';
+import 'package:app/core/video/decoder_pool.dart';
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 
 class AuthResult {
-  const AuthResult({
-    required this.accessToken,
-    required this.user,
-  });
+  const AuthResult({required this.accessToken, required this.user});
 
   final String accessToken;
   final UserProfile user;
 }
 
 class AuthRepository {
-  AuthRepository({
-    required this.dio,
-    required this.storage,
-  });
+  AuthRepository({required this.dio, required this.storage});
 
   final Dio dio;
   final SecureStorageService storage;
-
-
 
   Future<String> loginStep1({
     required String email,
@@ -67,6 +61,11 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
+      if (GetIt.instance.isRegistered<DecoderPool>()) {
+        await GetIt.instance<DecoderPool>().clear();
+      }
+    } catch (_) {}
+    try {
       await storage.clearAll();
     } catch (e) {
       // Log storage clear errors but don't block
@@ -75,7 +74,9 @@ class AuthRepository {
     try {
       unawaited(
         dio.post<void>('auth/logout').catchError((Object err) {
-          return Response<void>(requestOptions: RequestOptions(path: 'auth/logout'));
+          return Response<void>(
+            requestOptions: RequestOptions(path: 'auth/logout'),
+          );
         }),
       );
     } catch (_) {}

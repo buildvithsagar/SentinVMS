@@ -37,13 +37,16 @@ void main() {
       cameraRepository = MockCameraRepository();
       webSocketService = MockWebSocketService();
 
-      eventStreamController = StreamController<Map<String, dynamic>>.broadcast();
+      eventStreamController =
+          StreamController<Map<String, dynamic>>.broadcast();
       statusStreamController = StreamController<WebSocketStatus>.broadcast();
 
-      when(() => webSocketService.eventStream)
-          .thenAnswer((_) => eventStreamController.stream);
-      when(() => webSocketService.statusStream)
-          .thenAnswer((_) => statusStreamController.stream);
+      when(
+        () => webSocketService.eventStream,
+      ).thenAnswer((_) => eventStreamController.stream);
+      when(
+        () => webSocketService.statusStream,
+      ).thenAnswer((_) => statusStreamController.stream);
       when(() => webSocketService.subscribeToSite(any())).thenAnswer((_) {});
 
       cameraBloc = CameraBloc(
@@ -65,8 +68,9 @@ void main() {
     blocTest<CameraBloc, CameraState>(
       'emits [CameraLoading, CameraLoaded] when FetchCameras succeeds',
       build: () {
-        when(() => cameraRepository.getCameras(siteId: 'site-123'))
-            .thenAnswer((_) async => [camera]);
+        when(
+          () => cameraRepository.getCameras(siteId: 'site-123'),
+        ).thenAnswer((_) async => [camera]);
         return cameraBloc;
       },
       act: (bloc) => bloc.add(const FetchCameras(siteId: 'site-123')),
@@ -82,8 +86,9 @@ void main() {
     blocTest<CameraBloc, CameraState>(
       'emits [CameraLoading, CameraError] when FetchCameras fails',
       build: () {
-        when(() => cameraRepository.getCameras(siteId: 'site-123'))
-            .thenThrow(const CameraException('API Error'));
+        when(
+          () => cameraRepository.getCameras(siteId: 'site-123'),
+        ).thenThrow(const CameraException('API Error'));
         return cameraBloc;
       },
       act: (bloc) => bloc.add(const FetchCameras(siteId: 'site-123')),
@@ -96,8 +101,9 @@ void main() {
     blocTest<CameraBloc, CameraState>(
       'updates camera status when WebSocket status event is received',
       build: () {
-        when(() => cameraRepository.getCameras(siteId: 'site-123'))
-            .thenAnswer((_) async => [camera]);
+        when(
+          () => cameraRepository.getCameras(siteId: 'site-123'),
+        ).thenAnswer((_) async => [camera]);
         return cameraBloc;
       },
       act: (bloc) async {
@@ -107,7 +113,7 @@ void main() {
         // Emit WebSocket update
         eventStreamController.add({
           'event': 'camera.status',
-          'data': {'cameraId': 'camera-1', 'status': 'CONNECTED'}
+          'data': {'cameraId': 'camera-1', 'status': 'CONNECTED'},
         });
       },
       skip: 2, // Skip initial loading and loaded states
@@ -116,24 +122,26 @@ void main() {
       ],
     );
 
-    test('reconnects and triggers reconciliation when status becomes connected', () async {
-      when(() => cameraRepository.getCameras(siteId: 'site-123'))
-          .thenAnswer((_) async => [camera]);
+    test(
+      'reconnects and triggers reconciliation when status becomes connected',
+      () async {
+        when(
+          () => cameraRepository.getCameras(siteId: 'site-123'),
+        ).thenAnswer((_) async => [camera]);
 
-      cameraBloc.add(const FetchCameras(siteId: 'site-123'));
-      await Future<void>.delayed(Duration.zero);
+        cameraBloc.add(const FetchCameras(siteId: 'site-123'));
+        await Future<void>.delayed(Duration.zero);
 
+        // Simulate a connection status change (disconnected then connected)
+        statusStreamController.add(WebSocketStatus.disconnected);
+        await Future<void>.delayed(Duration.zero);
 
+        statusStreamController.add(WebSocketStatus.connected);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      // Simulate a connection status change (disconnected then connected)
-      statusStreamController.add(WebSocketStatus.disconnected);
-      await Future<void>.delayed(Duration.zero);
-
-      statusStreamController.add(WebSocketStatus.connected);
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-
-      // Verify reconciliation refetched cameras
-      verify(() => cameraRepository.getCameras(siteId: 'site-123')).called(2);
-    });
+        // Verify reconciliation refetched cameras
+        verify(() => cameraRepository.getCameras(siteId: 'site-123')).called(2);
+      },
+    );
   });
 }

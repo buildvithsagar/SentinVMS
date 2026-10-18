@@ -45,7 +45,7 @@ class ConnectivityBanner extends StatelessWidget {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'NETWORK CONNECTION LOST — TELEMETRY PAUSED',
+                        'CONTROL PLANE UNREACHABLE - LOCAL VIDEO MAY STILL WORK',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 11,

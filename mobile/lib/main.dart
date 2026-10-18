@@ -1,22 +1,13 @@
 import 'dart:async';
 
 import 'package:app/app/app.dart';
-import 'package:app/core/auth/auth_bloc.dart';
-import 'package:app/core/config/app_config.dart';
-import 'package:app/core/lifecycle/app_lifecycle_observer.dart';
-import 'package:app/core/network/connectivity_service.dart';
-import 'package:app/core/network/dio_factory.dart';
-import 'package:app/core/network/websocket_service.dart';
-import 'package:app/core/storage/secure_storage_service.dart';
-import 'package:app/core/video/decoder_pool.dart';
-import 'package:app/features/alarms/bloc/alarm_bloc.dart';
-import 'package:app/features/alarms/bloc/alarm_event.dart';
-import 'package:app/features/alarms/data/alarm_repository.dart';
-import 'package:app/features/camera/data/camera_repository.dart';
-import 'package:app/features/device_onboarding/data/device_onboarding_repository.dart';
-import 'package:app/features/export/data/export_repository.dart';
-import 'package:app/features/login/data/auth_repository.dart';
-import 'package:app/features/playback/data/playback_repository.dart';
+import 'package:app/core/core.dart';
+import 'package:app/features/alarms/alarms.dart';
+import 'package:app/features/camera/camera.dart';
+import 'package:app/features/device_onboarding/device_onboarding.dart';
+import 'package:app/features/export/export.dart';
+import 'package:app/features/login/login.dart';
+import 'package:app/features/playback/playback.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -43,7 +34,11 @@ void main() {
       };
 
       PlatformDispatcher.instance.onError = (error, stack) {
-        _logger.e('Platform Uncaught Error: $error', error: error, stackTrace: stack);
+        _logger.e(
+          'Platform Uncaught Error: $error',
+          error: error,
+          stackTrace: stack,
+        );
         return true;
       };
 
@@ -60,27 +55,47 @@ void main() {
         storage: storage,
         authBloc: authBloc,
         trustedCAsPem: const <String>[],
+        config: AppConfig.instance,
       );
       getIt.registerSingleton<Dio>(dio);
 
       // 4. Connectivity & Telemetry Monitoring
-      final connectivityService = ConnectivityService(logger: _logger);
+      final connectivityService = ConnectivityService(
+        logger: _logger,
+        enabled: !AppConfig.instance.enableDemoMode,
+        lookupHost: Uri.parse(AppConfig.instance.apiBaseUrl).host,
+      );
       getIt.registerSingleton<ConnectivityService>(connectivityService);
 
       // 5. Feature Repositories & Services
       final authRepository = AuthRepository(dio: dio, storage: storage);
       getIt.registerSingleton<AuthRepository>(authRepository);
 
-      final cameraRepository = CameraRepository(dio: dio);
+      final cameraRepository = CameraRepository(
+        dio: dio,
+        demoMode: AppConfig.instance.enableDemoMode,
+      );
       getIt.registerSingleton<CameraRepository>(cameraRepository);
 
-      final decoderPool = DecoderPool(maxDecoders: 9);
+      final decoderPool = DecoderPool(
+        maxDecoders: AppConfig.instance.maxVideoDecoders,
+      );
       getIt.registerSingleton<DecoderPool>(decoderPool);
 
-      final webSocketService = WebSocketService(authBloc: authBloc);
+      const webRtcService = WebRtcService();
+      getIt.registerSingleton<WebRtcService>(webRtcService);
+
+      final webSocketService = WebSocketService(
+        authBloc: authBloc,
+        wsUrl: AppConfig.instance.wsUrl,
+        enabled: !AppConfig.instance.enableDemoMode,
+      );
       getIt.registerSingleton<WebSocketService>(webSocketService);
 
-      final playbackRepository = PlaybackRepository(dio: dio);
+      final playbackRepository = PlaybackRepository(
+        dio: dio,
+        demoMode: AppConfig.instance.enableDemoMode,
+      );
       getIt.registerSingleton<PlaybackRepository>(playbackRepository);
 
       final alarmRepository = AlarmRepository(dio: dio);
@@ -90,7 +105,9 @@ void main() {
       getIt.registerSingleton<ExportRepository>(exportRepository);
 
       final deviceOnboardingRepository = DeviceOnboardingRepository(dio: dio);
-      getIt.registerSingleton<DeviceOnboardingRepository>(deviceOnboardingRepository);
+      getIt.registerSingleton<DeviceOnboardingRepository>(
+        deviceOnboardingRepository,
+      );
 
       final alarmBloc = AlarmBloc(alarmRepository: alarmRepository);
       getIt.registerSingleton<AlarmBloc>(alarmBloc);
@@ -105,16 +122,10 @@ void main() {
       webSocketService.eventStream.listen((event) {
         if (event['event'] == 'alarm' && event['data'] != null) {
           alarmBloc.add(
-            AlarmReceived(
-              alarmData: event['data'] as Map<String, dynamic>,
-            ),
+            AlarmReceived(alarmData: event['data'] as Map<String, dynamic>),
           );
         } else if (event['eventClass'] != null) {
-          alarmBloc.add(
-            AlarmReceived(
-              alarmData: event,
-            ),
-          );
+          alarmBloc.add(AlarmReceived(alarmData: event));
         }
       });
 

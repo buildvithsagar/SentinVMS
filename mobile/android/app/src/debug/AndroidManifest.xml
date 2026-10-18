@@ -4,4 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Hiring/demo builds may connect to an HTTP MediaMTX server on the LAN. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

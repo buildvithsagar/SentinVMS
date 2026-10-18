@@ -78,7 +78,7 @@ void main() {
       );
 
       expect(pool.activeLeases.length, 1);
-      pool.release(lease);
+      await pool.release(lease);
 
       expect(pool.activeLeases.length, 0);
       verify(controller.dispose).called(1);
@@ -101,7 +101,7 @@ void main() {
       }
 
       expect(pool.activeLeases.length, 3);
-      pool.clear();
+      await pool.clear();
 
       expect(pool.activeLeases.length, 0);
       expect(evictions, [true, true, true]);

@@ -131,10 +131,7 @@ class _ScannerViewState extends State<ScannerView> {
 }
 
 class _ScannerTargetPainter extends CustomPainter {
-  _ScannerTargetPainter({
-    required this.color,
-    required this.strokeWidth,
-  });
+  _ScannerTargetPainter({required this.color, required this.strokeWidth});
 
   final Color color;
   final double strokeWidth;

@@ -17,10 +17,7 @@ class AuthAuthenticating extends AuthState {
 }
 
 class Authenticated extends AuthState {
-  const Authenticated({
-    required this.accessToken,
-    required this.user,
-  });
+  const Authenticated({required this.accessToken, required this.user});
 
   final String accessToken;
   final UserProfile user;

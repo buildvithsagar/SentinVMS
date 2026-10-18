@@ -25,19 +25,25 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       if (status == 'OTP_SENT') {
         emit(LoginOtpRequired(email: event.email));
       } else {
-        emit(const LoginFailure(errorMessage: 'Authentication server status mismatch.'));
+        emit(
+          const LoginFailure(
+            errorMessage: 'Authentication server status mismatch.',
+          ),
+        );
       }
     } on UnauthorizedException {
       emit(
         const LoginFailure(
-          errorMessage: 'Invalid credentials. '
+          errorMessage:
+              'Invalid credentials. '
               'Please verify Email and Password.',
         ),
       );
     } on RateLimitException {
       emit(
         const LoginFailure(
-          errorMessage: 'Too many failed login attempts. '
+          errorMessage:
+              'Too many failed login attempts. '
               'Please try again after 1 minute.',
         ),
       );
@@ -55,24 +61,19 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     emit(const LoginLoading());
     try {
       // Infer the customer/tenant ID from the operator email
-      final inferredTenantId = event.email.contains('tenantb') ? 'MOCKTNB2' : 'MOCKTNA1';
+      final inferredTenantId = event.email.contains('tenantb')
+          ? 'MOCKTNB2'
+          : 'MOCKTNA1';
 
       final result = await authRepository.loginStep2(
         email: event.email,
         otpCode: event.otpCode,
         customerId: inferredTenantId,
       );
-      emit(
-        LoginSuccess(
-          accessToken: result.accessToken,
-          user: result.user,
-        ),
-      );
+      emit(LoginSuccess(accessToken: result.accessToken, user: result.user));
     } on UnauthorizedException {
       emit(
-        const LoginFailure(
-          errorMessage: 'Invalid OTP code. Please try again.',
-        ),
+        const LoginFailure(errorMessage: 'Invalid OTP code. Please try again.'),
       );
     } on RateLimitException {
       emit(
@@ -81,7 +82,11 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         ),
       );
     } on NetworkException catch (e) {
-      emit(LoginFailure(errorMessage: 'Verification connection failure: ${e.message}'));
+      emit(
+        LoginFailure(
+          errorMessage: 'Verification connection failure: ${e.message}',
+        ),
+      );
     } catch (e) {
       emit(LoginFailure(errorMessage: 'Verification failed: $e'));
     }

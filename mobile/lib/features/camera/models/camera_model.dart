@@ -22,7 +22,8 @@ class Camera extends Equatable {
       rtspUrl: json['streamUri'] as String? ?? json['rtspUrl'] as String? ?? '',
       onvifProfile: json['onvifProfile'] as String? ?? 'S',
       codec: json['codec'] as String? ?? 'H264',
-      ptzCapable: json['ptzSupported'] as bool? ?? json['ptzCapable'] as bool? ?? false,
+      ptzCapable:
+          json['ptzSupported'] as bool? ?? json['ptzCapable'] as bool? ?? false,
       status: json['status'] as String? ?? 'DISCONNECTED',
     );
   }
@@ -77,14 +78,14 @@ class Camera extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        siteId,
-        name,
-        ipAddress,
-        rtspUrl,
-        onvifProfile,
-        codec,
-        ptzCapable,
-        status,
-      ];
+    id,
+    siteId,
+    name,
+    ipAddress,
+    rtspUrl,
+    onvifProfile,
+    codec,
+    ptzCapable,
+    status,
+  ];
 }

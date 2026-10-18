@@ -9,10 +9,7 @@ abstract class AuthEvent extends Equatable {
 }
 
 class AuthLoggedIn extends AuthEvent {
-  const AuthLoggedIn({
-    required this.accessToken,
-    required this.user,
-  });
+  const AuthLoggedIn({required this.accessToken, required this.user});
 
   final String accessToken;
   final UserProfile user;

@@ -41,7 +41,8 @@ class Alarm extends Equatable {
       siteId: json['siteId'] as String? ?? '',
       cameraId: json['cameraId'] as String? ?? '',
       cameraName: json['cameraName'] as String? ?? '',
-      eventClass: json['eventClass'] as String? ?? json['model'] as String? ?? '',
+      eventClass:
+          json['eventClass'] as String? ?? json['model'] as String? ?? '',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
       status: json['status'] as String? ?? 'ACTIVE',
       timestamp: parsedTimestamp,
@@ -108,15 +109,15 @@ class Alarm extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        siteId,
-        cameraId,
-        cameraName,
-        eventClass,
-        confidence,
-        status,
-        timestamp,
-        acknowledgedBy,
-        acknowledgedAt,
-      ];
+    id,
+    siteId,
+    cameraId,
+    cameraName,
+    eventClass,
+    confidence,
+    status,
+    timestamp,
+    acknowledgedBy,
+    acknowledgedAt,
+  ];
 }

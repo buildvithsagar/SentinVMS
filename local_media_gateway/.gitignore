@@ -1,0 +1,7 @@
+.dart_tool/
+.env
+build/
+.tools/
+.native-gateway.json
+auto.crt
+auto.key

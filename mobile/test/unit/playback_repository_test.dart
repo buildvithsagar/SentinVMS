@@ -23,56 +23,58 @@ void main() {
       repository = PlaybackRepository(dio: dio);
     });
 
-    test('getRecordingSegments returns list of RecordingSegment objects on success', () async {
-      final payload = {
-        'data': [
-          {
-            'segmentId': 'seg-1',
-            'siteId': 'site-1',
-            'cameraId': 'cam-1',
-            'startTime': '2026-06-25T12:00:00Z',
-            'endTime': '2026-06-25T13:00:00Z',
-            'type': 'CONTINUOUS'
+    test(
+      'getRecordingSegments returns list of RecordingSegment objects on success',
+      () async {
+        final payload = {
+          'data': [
+            {
+              'segmentId': 'seg-1',
+              'siteId': 'site-1',
+              'cameraId': 'cam-1',
+              'startTime': '2026-06-25T12:00:00Z',
+              'endTime': '2026-06-25T13:00:00Z',
+              'type': 'CONTINUOUS',
+            },
+            {
+              'segmentId': 'seg-2',
+              'siteId': 'site-1',
+              'cameraId': 'cam-1',
+              'startTime': '2026-06-25T14:00:00Z',
+              'endTime': '2026-06-25T14:30:00Z',
+              'type': 'MOTION',
+            },
+          ],
+        };
+
+        final responseBody = ResponseBody.fromString(
+          jsonEncode(payload),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
           },
-          {
-            'segmentId': 'seg-2',
-            'siteId': 'site-1',
-            'cameraId': 'cam-1',
-            'startTime': '2026-06-25T14:00:00Z',
-            'endTime': '2026-06-25T14:30:00Z',
-            'type': 'MOTION'
-          }
-        ]
-      };
+        );
 
-      final responseBody = ResponseBody.fromString(
-        jsonEncode(payload),
-        200,
-        headers: {
-          Headers.contentTypeHeader: [Headers.jsonContentType],
-        },
-      );
+        when(
+          () => mockAdapter.fetch(any(), any(), any()),
+        ).thenAnswer((_) async => responseBody);
 
-      when(() => mockAdapter.fetch(any(), any(), any()))
-          .thenAnswer((_) async => responseBody);
+        final segments = await repository.getRecordingSegments(
+          siteId: 'site-1',
+          cameraId: 'cam-1',
+          date: DateTime(2026, 6, 25),
+        );
 
-      final segments = await repository.getRecordingSegments(
-        siteId: 'site-1',
-        cameraId: 'cam-1',
-        date: DateTime(2026, 6, 25),
-      );
-
-      expect(segments.length, 2);
-      expect(segments[0].id, 'seg-1');
-      expect(segments[0].type, 'CONTINUOUS');
-      expect(segments[1].id, 'seg-2');
-      expect(segments[1].type, 'MOTION');
-    });
+        expect(segments.length, 2);
+        expect(segments[0].id, 'seg-1');
+        expect(segments[0].type, 'CONTINUOUS');
+        expect(segments[1].id, 'seg-2');
+        expect(segments[1].type, 'MOTION');
+      },
+    );
 
     test('getPlaybackUrl returns hlsUrl on success', () async {
-      final payload = {
-        'hlsUrl': 'https://stream.vms.io/playback/cam-1.m3u8'
-      };
+      final payload = {'hlsUrl': 'https://stream.vms.io/playback/cam-1.m3u8'};
 
       final responseBody = ResponseBody.fromString(
         jsonEncode(payload),
@@ -82,8 +84,9 @@ void main() {
         },
       );
 
-      when(() => mockAdapter.fetch(any(), any(), any()))
-          .thenAnswer((_) async => responseBody);
+      when(
+        () => mockAdapter.fetch(any(), any(), any()),
+      ).thenAnswer((_) async => responseBody);
 
       final url = await repository.getPlaybackUrl(
         siteId: 'site-1',
@@ -94,26 +97,52 @@ void main() {
       expect(url, 'https://stream.vms.io/playback/cam-1.m3u8');
     });
 
-    test('getRecordingSegments throws PlaybackException when response fails', () async {
-      final responseBody = ResponseBody.fromString(
-        'Internal Server Error',
-        500,
-        headers: {
-          Headers.contentTypeHeader: const ['text/plain'],
-        },
-      );
+    test(
+      'getRecordingSegments throws PlaybackException when response fails',
+      () async {
+        final responseBody = ResponseBody.fromString(
+          'Internal Server Error',
+          500,
+          headers: {
+            Headers.contentTypeHeader: const ['text/plain'],
+          },
+        );
 
-      when(() => mockAdapter.fetch(any(), any(), any()))
-          .thenAnswer((_) async => responseBody);
+        when(
+          () => mockAdapter.fetch(any(), any(), any()),
+        ).thenAnswer((_) async => responseBody);
 
-      expect(
-        () => repository.getRecordingSegments(
+        expect(
+          () => repository.getRecordingSegments(
+            siteId: 'site-1',
+            cameraId: 'cam-1',
+            date: DateTime(2026, 6, 25),
+          ),
+          throwsA(isA<PlaybackException>()),
+        );
+      },
+    );
+
+    test(
+      'findSegmentAtTime performs O(log N) binary search correctly',
+      () async {
+        repository = PlaybackRepository(dio: dio, demoMode: true);
+        final date = DateTime(2026, 6, 25);
+        final segments = await repository.getRecordingSegments(
           siteId: 'site-1',
           cameraId: 'cam-1',
-          date: DateTime(2026, 6, 25),
-        ),
-        throwsA(isA<PlaybackException>()),
-      );
-    });
+          date: date,
+        );
+
+        final found = PlaybackRepository.findSegmentAtTime(
+          segments,
+          date.add(const Duration(hours: 8, minutes: 20)),
+        );
+
+        expect(found, isNotNull);
+        expect(found!.id, 'seg-002');
+        expect(found.type, 'MOTION');
+      },
+    );
   });
 }

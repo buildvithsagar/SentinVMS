@@ -1,8 +1,9 @@
 import 'package:flutter/services.dart';
 
 class SecureStorageService {
-  static const MethodChannel _channel =
-      MethodChannel('com.vms.app/secure_storage');
+  static const MethodChannel _channel = MethodChannel(
+    'com.vms.app/secure_storage',
+  );
   static const String _refreshTokenKey = 'vms_refresh_token';
 
   /// Securely stores the refresh token in the hardware-backed keystore/keychain.
@@ -27,16 +28,16 @@ class SecureStorageService {
         'key': _refreshTokenKey,
       });
     } on PlatformException catch (e) {
-      throw SecureStorageException('Failed to read refresh token: ${e.message}');
+      throw SecureStorageException(
+        'Failed to read refresh token: ${e.message}',
+      );
     }
   }
 
   /// Deletes the refresh token from secure storage.
   Future<void> deleteRefreshToken() async {
     try {
-      await _channel.invokeMethod<void>('delete', {
-        'key': _refreshTokenKey,
-      });
+      await _channel.invokeMethod<void>('delete', {'key': _refreshTokenKey});
     } on PlatformException catch (e) {
       throw SecureStorageException(
         'Failed to delete refresh token: ${e.message}',

@@ -1,13 +1,14 @@
 import 'dart:async';
-import 'package:app/core/video/decoder_pool.dart';
-import 'package:app/features/camera/data/camera_repository.dart';
-import 'package:app/features/camera/models/camera_model.dart';
-import 'package:app/features/live_view/widgets/video_tile.dart';
+
+import 'package:app/core/core.dart';
+import 'package:app/features/camera/camera.dart';
+import 'package:app/features/live_view/live_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockCameraRepository extends Mock implements CameraRepository {}
+
 class MockDecoderPool extends Mock implements DecoderPool {}
 
 void main() {
@@ -34,8 +35,9 @@ void main() {
 
     testWidgets('displays loading state initially', (tester) async {
       final completer = Completer<String>();
-      when(() => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'))
-          .thenAnswer((_) => completer.future);
+      when(
+        () => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'),
+      ).thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -55,9 +57,12 @@ void main() {
       await tester.pump();
     });
 
-    testWidgets('displays error state when stream URL fetch fails', (tester) async {
-      when(() => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'))
-          .thenThrow(const CameraException('Failed to load URL'));
+    testWidgets('displays error state when stream URL fetch fails', (
+      tester,
+    ) async {
+      when(
+        () => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'),
+      ).thenThrow(const CameraException('Failed to load URL'));
 
       await tester.pumpWidget(
         MaterialApp(
@@ -78,32 +83,36 @@ void main() {
       expect(find.text('Retry'), findsOneWidget);
     });
 
-    testWidgets('renders PTZ overlay if camera is PTZ capable and showPtzOverlay is true', (tester) async {
-      final ptzCamera = camera.copyWith(ptzCapable: true);
-      when(() => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'))
-          .thenThrow(const CameraException('Failed to load URL'));
+    testWidgets(
+      'renders PTZ overlay if camera is PTZ capable and showPtzOverlay is true',
+      (tester) async {
+        final ptzCamera = camera.copyWith(ptzCapable: true);
+        when(
+          () => mockRepo.getLiveStreamUrl(siteId: 'site_1', cameraId: 'cam_1'),
+        ).thenThrow(const CameraException('Failed to load URL'));
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: VideoTile(
-              camera: ptzCamera,
-              cameraRepository: mockRepo,
-              decoderPool: mockPool,
-              showPtzOverlay: true,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: VideoTile(
+                camera: ptzCamera,
+                cameraRepository: mockRepo,
+                decoderPool: mockPool,
+                showPtzOverlay: true,
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
+        await tester.pump();
 
-      expect(find.byIcon(Icons.zoom_in), findsOneWidget);
-      expect(find.byIcon(Icons.zoom_out), findsOneWidget);
-      expect(find.byIcon(Icons.arrow_drop_up), findsOneWidget);
-      expect(find.byIcon(Icons.arrow_drop_down), findsOneWidget);
-      expect(find.byIcon(Icons.arrow_left), findsOneWidget);
-      expect(find.byIcon(Icons.arrow_right), findsOneWidget);
-    });
+        expect(find.byIcon(Icons.zoom_in), findsOneWidget);
+        expect(find.byIcon(Icons.zoom_out), findsOneWidget);
+        expect(find.byIcon(Icons.arrow_drop_up), findsOneWidget);
+        expect(find.byIcon(Icons.arrow_drop_down), findsOneWidget);
+        expect(find.byIcon(Icons.arrow_left), findsOneWidget);
+        expect(find.byIcon(Icons.arrow_right), findsOneWidget);
+      },
+    );
   });
 }

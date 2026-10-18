@@ -12,10 +12,7 @@ class LoginReset extends LoginEvent {
 }
 
 class LoginSubmitted extends LoginEvent {
-  const LoginSubmitted({
-    required this.email,
-    required this.password,
-  });
+  const LoginSubmitted({required this.email, required this.password});
 
   final String email;
   final String password;
@@ -25,10 +22,7 @@ class LoginSubmitted extends LoginEvent {
 }
 
 class LoginOtpSubmitted extends LoginEvent {
-  const LoginOtpSubmitted({
-    required this.email,
-    required this.otpCode,
-  });
+  const LoginOtpSubmitted({required this.email, required this.otpCode});
 
   final String email;
   final String otpCode;

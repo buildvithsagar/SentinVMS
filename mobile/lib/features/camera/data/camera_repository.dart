@@ -1,19 +1,58 @@
 import 'package:app/features/camera/models/camera_model.dart';
+import 'package:app/features/camera/models/live_stream_session.dart';
 import 'package:dio/dio.dart';
 
 class CameraRepository {
   CameraRepository({
     required this.dio,
+    this.demoMode = false,
+    this.cacheTtl = const Duration(seconds: 30),
   });
 
   final Dio dio;
+  final bool demoMode;
+  final Duration cacheTtl;
+  final Map<String, _CameraCacheEntry> _cache = {};
+  final Map<String, Future<List<Camera>>> _inFlightRequests = {};
 
   /// Fetches cameras. Non-admin accounts have customer_id sharded implicitly.
   /// Standard GET /api/v5/cameras returns PaginatedDto<CameraResponseDto>.
-  Future<List<Camera>> getCameras({String? siteId}) async {
+  Future<List<Camera>> getCameras({String? siteId, bool forceRefresh = false}) {
+    if (demoMode) return Future.value(_demoCameras);
+
+    final cacheKey = siteId ?? '*';
+    final cached = _cache[cacheKey];
+    if (!forceRefresh &&
+        cached != null &&
+        DateTime.now().difference(cached.loadedAt) < cacheTtl) {
+      return Future.value(cached.cameras);
+    }
+
+    final pending = _inFlightRequests[cacheKey];
+    if (!forceRefresh && pending != null) return pending;
+
+    final request = _fetchCameras(siteId: siteId)
+        .then((cameras) {
+          final stableResult = List<Camera>.unmodifiable(cameras);
+          _cache[cacheKey] = _CameraCacheEntry(
+            cameras: stableResult,
+            loadedAt: DateTime.now(),
+          );
+          return stableResult;
+        })
+        .whenComplete(() {
+          // Do not return the removed Future here. Returning the same in-flight
+          // Future makes whenComplete wait on itself and deadlocks the request.
+          _inFlightRequests.remove(cacheKey);
+        });
+    _inFlightRequests[cacheKey] = request;
+    return request;
+  }
+
+  Future<List<Camera>> _fetchCameras({String? siteId}) async {
     try {
       final response = await dio.get<Map<String, dynamic>>(
-        '/cameras',
+        'cameras',
         queryParameters: siteId != null ? {'siteId': siteId} : null,
       );
       if (response.statusCode == 200 && response.data != null) {
@@ -23,20 +62,23 @@ class CameraRepository {
               .map((json) => Camera.fromJson(json as Map<String, dynamic>))
               .toList();
         }
-        throw const CameraException('No camera streams registered for this site.');
+        throw const CameraException(
+          'No camera streams registered for this site.',
+        );
       }
       throw CameraException('Failed to fetch cameras: ${response.statusCode}');
     } on CameraException {
       rethrow;
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw CameraException('Failed to fetch cameras: ${e.response?.statusCode}');
-      }
-      return _demoCameras;
-    } catch (_) {
-      return _demoCameras;
+      throw CameraException(
+        e.response != null
+            ? 'Failed to fetch cameras: ${e.response?.statusCode}'
+            : e.message ?? 'Unable to reach the camera service.',
+      );
     }
   }
+
+  void invalidateCameraCache() => _cache.clear();
 
   static const List<Camera> _demoCameras = [
     Camera(
@@ -140,13 +182,166 @@ class CameraRepository {
     ),
   ];
 
-  /// Fetches signed video stream URL for a camera stream.
-  /// Scoped by siteId and cameraId.
+  /// Requests an authorized live media session from the control plane.
+  ///
+  /// The backend remains responsible for camera credentials, tenant scoping,
+  /// Edge assignment, and MediaCore session orchestration. Flutter receives
+  /// only a WebRTC signaling descriptor or a short-lived HLS URL.
+  Future<LiveStreamSession> getLiveStreamSession({
+    required String cameraId,
+    required StreamType type,
+    String quality = 'main',
+  }) async {
+    if (demoMode) {
+      if (type == StreamType.webrtc) {
+        throw const CameraException(
+          'WebRTC control-plane sessions are unavailable in demo mode.',
+        );
+      }
+      return LiveStreamSession(
+        type: StreamType.hls,
+        streamUrl: _demoStreamUrl(cameraId),
+        sourceCodec: 'DEMO',
+        deliveryCodec: 'H264',
+      );
+    }
+    try {
+      final response = await dio.get<Map<String, dynamic>>(
+        'cameras/$cameraId/stream',
+        queryParameters: {'type': type.apiValue, 'quality': quality},
+      );
+      final data = response.data;
+      if (response.statusCode == 200 && data != null) {
+        final session = LiveStreamSession.fromJson(data, requestedType: type);
+        if (type == StreamType.hls &&
+            (session.streamUrl == null || session.streamUrl!.isEmpty)) {
+          throw const CameraException('HLS response is missing stream_url.');
+        }
+        if (type == StreamType.webrtc && session.resolvedOfferUrl == null) {
+          throw const CameraException(
+            'WebRTC response is missing signaling information.',
+          );
+        }
+        return session;
+      }
+      throw CameraException(
+        'Failed to create ${type.apiValue} session: ${response.statusCode}',
+      );
+    } on CameraException {
+      rethrow;
+    } on DioException catch (error) {
+      throw CameraException(
+        error.response?.data?.toString() ??
+            error.message ??
+            'Failed to create ${type.apiValue} session.',
+      );
+    }
+  }
+
+  Future<WebRtcNegotiationResult> exchangeWebRtcOffer({
+    required LiveStreamSession session,
+    required String sdp,
+    String type = 'offer',
+  }) async {
+    final offerUrl = session.resolvedOfferUrl;
+    if (offerUrl == null) {
+      throw const CameraException('WebRTC offer URL is unavailable.');
+    }
+
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        offerUrl,
+        data: {
+          'session_id': session.sessionId,
+          'viewer_id': session.viewerId,
+          'sdp': sdp,
+          'type': type,
+        },
+      );
+      final root = response.data;
+      if (root == null) {
+        throw const CameraException('WebRTC offer returned an empty body.');
+      }
+      final payload = root['data'] is Map
+          ? Map<String, dynamic>.from(root['data'] as Map)
+          : root;
+      final answer = payload['answer'] is Map
+          ? Map<String, dynamic>.from(payload['answer'] as Map)
+          : payload;
+      final answerSdp =
+          answer['sdp'] as String? ??
+          payload['answer_sdp'] as String? ??
+          payload['answerSdp'] as String?;
+      if (answerSdp == null || answerSdp.isEmpty) {
+        throw const CameraException('WebRTC response is missing answer SDP.');
+      }
+      final rawCandidates =
+          payload['ice_candidates'] as List<dynamic>? ??
+          payload['iceCandidates'] as List<dynamic>? ??
+          const <dynamic>[];
+      return WebRtcNegotiationResult(
+        answerSdp: answerSdp,
+        answerType: answer['type'] as String? ?? 'answer',
+        remoteCandidates: rawCandidates
+            .whereType<Map<Object?, Object?>>()
+            .map(
+              (candidate) => WebRtcIceCandidateData.fromJson(
+                Map<String, dynamic>.from(candidate),
+              ),
+            )
+            .where((candidate) => candidate.candidate.isNotEmpty)
+            .toList(),
+      );
+    } on CameraException {
+      rethrow;
+    } on DioException catch (error) {
+      throw CameraException(
+        error.response?.data?.toString() ??
+            error.message ??
+            'WebRTC negotiation failed.',
+      );
+    }
+  }
+
+  Future<void> sendWebRtcIceCandidate({
+    required LiveStreamSession session,
+    required WebRtcIceCandidateData candidate,
+  }) async {
+    final iceUrl = session.resolvedIceUrl;
+    if (iceUrl == null) return;
+    await dio.post<void>(
+      iceUrl,
+      data: {
+        'session_id': session.sessionId,
+        'viewer_id': session.viewerId,
+        ...candidate.toJson(),
+      },
+    );
+  }
+
+  Future<void> closeLiveStreamSession(LiveStreamSession session) async {
+    final closeUrl = session.resolvedCloseUrl;
+    if (closeUrl == null) return;
+    try {
+      await dio.delete<void>(closeUrl);
+    } on DioException {
+      // Local media resources must still be released if remote cleanup fails.
+    }
+  }
+
+  /// Backwards-compatible HLS accessor used by older callers.
   Future<String> getLiveStreamUrl({
     required String siteId,
     required String cameraId,
   }) async {
-    // Return distinct high-reliability public/building video stream URLs per camera
+    final session = await getLiveStreamSession(
+      cameraId: cameraId,
+      type: StreamType.hls,
+    );
+    return session.streamUrl!;
+  }
+
+  String _demoStreamUrl(String cameraId) {
     switch (cameraId) {
       case 'cam-001':
         // Main Entrance - Turnstile Gate (City/Entrance Feed)
@@ -179,6 +374,85 @@ class CameraRepository {
         return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
     }
   }
+
+  /// Dispatches directional PTZ movement command for a camera.
+  /// Allowed directions: 'left', 'right', 'up', 'down'.
+  Future<void> movePtz({
+    required String siteId,
+    required String cameraId,
+    required String direction,
+    double speed = 1.0,
+  }) async {
+    if (demoMode) return;
+    try {
+      await dio.post<Map<String, dynamic>>(
+        'sites/$siteId/cameras/$cameraId/ptz/move',
+        data: {'direction': direction, 'speed': speed},
+      );
+    } on DioException catch (error) {
+      throw CameraException(error.message ?? 'PTZ movement failed.');
+    }
+  }
+
+  /// Dispatches PTZ zoom command for a camera.
+  /// Allowed zoom modes: 'in', 'out'.
+  Future<void> zoomPtz({
+    required String siteId,
+    required String cameraId,
+    required String zoomMode,
+    double speed = 1.0,
+  }) async {
+    if (demoMode) return;
+    try {
+      await dio.post<Map<String, dynamic>>(
+        'sites/$siteId/cameras/$cameraId/ptz/zoom',
+        data: {'zoomMode': zoomMode, 'speed': speed},
+      );
+    } on DioException catch (error) {
+      throw CameraException(error.message ?? 'PTZ zoom failed.');
+    }
+  }
+
+  /// Recalls a PTZ preset position for a camera.
+  Future<void> presetPtz({
+    required String siteId,
+    required String cameraId,
+    required int presetId,
+  }) async {
+    if (demoMode) return;
+    try {
+      await dio.post<Map<String, dynamic>>(
+        'sites/$siteId/cameras/$cameraId/ptz/preset',
+        data: {'presetId': presetId},
+      );
+    } on DioException catch (error) {
+      throw CameraException(error.message ?? 'PTZ preset recall failed.');
+    }
+  }
+
+  /// Dispatches emergency panic protocol payload to Control Room API.
+  Future<void> dispatchEmergencyPanic({
+    required String protocol,
+    required String operatorId,
+    String? siteId,
+    String? cameraId,
+  }) async {
+    if (demoMode) return;
+    try {
+      await dio.post<Map<String, dynamic>>(
+        'emergency/dispatch',
+        data: {
+          'protocol': protocol,
+          'siteId': siteId ?? 'all',
+          'cameraId': cameraId ?? 'all',
+          'operatorId': operatorId,
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+    } on DioException catch (error) {
+      throw CameraException(error.message ?? 'Emergency dispatch failed.');
+    }
+  }
 }
 
 class CameraException implements Exception {
@@ -188,4 +462,11 @@ class CameraException implements Exception {
 
   @override
   String toString() => 'CameraException: $message';
+}
+
+class _CameraCacheEntry {
+  const _CameraCacheEntry({required this.cameras, required this.loadedAt});
+
+  final List<Camera> cameras;
+  final DateTime loadedAt;
 }

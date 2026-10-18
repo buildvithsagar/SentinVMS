@@ -26,10 +26,7 @@ class LoginOtpRequired extends LoginState {
 }
 
 class LoginSuccess extends LoginState {
-  const LoginSuccess({
-    required this.accessToken,
-    required this.user,
-  });
+  const LoginSuccess({required this.accessToken, required this.user});
 
   final String accessToken;
   final UserProfile user;

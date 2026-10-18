@@ -35,24 +35,28 @@ void main() {
     blocTest<DeviceOnboardingBloc, DeviceOnboardingState>(
       'emits [DeviceOnboardingLoading, DeviceOnboardingSuccess] when onboardDevice succeeds',
       build: () {
-        when(() => repository.onboardDevice(
-              category: category,
-              serialNumber: serialNumber,
-              deviceName: deviceName,
-              username: username,
-              password: password,
-              mode: mode,
-            )).thenAnswer((_) async {});
+        when(
+          () => repository.onboardDevice(
+            category: category,
+            serialNumber: serialNumber,
+            deviceName: deviceName,
+            username: username,
+            password: password,
+            mode: mode,
+          ),
+        ).thenAnswer((_) async {});
         return bloc;
       },
-      act: (bloc) => bloc.add(const DeviceOnboardSubmitted(
-        category: category,
-        serialNumber: serialNumber,
-        deviceName: deviceName,
-        username: username,
-        password: password,
-        mode: mode,
-      )),
+      act: (bloc) => bloc.add(
+        const DeviceOnboardSubmitted(
+          category: category,
+          serialNumber: serialNumber,
+          deviceName: deviceName,
+          username: username,
+          password: password,
+          mode: mode,
+        ),
+      ),
       expect: () => const [
         DeviceOnboardingLoading(),
         DeviceOnboardingSuccess(),
@@ -62,24 +66,28 @@ void main() {
     blocTest<DeviceOnboardingBloc, DeviceOnboardingState>(
       'emits [DeviceOnboardingLoading, DeviceOnboardingFailure] when onboardDevice fails',
       build: () {
-        when(() => repository.onboardDevice(
-              category: category,
-              serialNumber: serialNumber,
-              deviceName: deviceName,
-              username: username,
-              password: password,
-              mode: mode,
-            )).thenThrow(const DeviceOnboardingException('Registration failed'));
+        when(
+          () => repository.onboardDevice(
+            category: category,
+            serialNumber: serialNumber,
+            deviceName: deviceName,
+            username: username,
+            password: password,
+            mode: mode,
+          ),
+        ).thenThrow(const DeviceOnboardingException('Registration failed'));
         return bloc;
       },
-      act: (bloc) => bloc.add(const DeviceOnboardSubmitted(
-        category: category,
-        serialNumber: serialNumber,
-        deviceName: deviceName,
-        username: username,
-        password: password,
-        mode: mode,
-      )),
+      act: (bloc) => bloc.add(
+        const DeviceOnboardSubmitted(
+          category: category,
+          serialNumber: serialNumber,
+          deviceName: deviceName,
+          username: username,
+          password: password,
+          mode: mode,
+        ),
+      ),
       expect: () => const [
         DeviceOnboardingLoading(),
         DeviceOnboardingFailure(message: 'Registration failed'),
@@ -90,9 +98,7 @@ void main() {
       'emits [DeviceOnboardingInitial] when DeviceOnboardReset is added',
       build: () => bloc,
       act: (bloc) => bloc.add(const DeviceOnboardReset()),
-      expect: () => const [
-        DeviceOnboardingInitial(),
-      ],
+      expect: () => const [DeviceOnboardingInitial()],
     );
   });
 }
