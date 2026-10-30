@@ -1,3 +1,4 @@
+import 'package:app/features/camera/data/local_camera_store.dart';
 import 'package:app/features/camera/models/camera_model.dart';
 import 'package:app/features/camera/models/live_stream_session.dart';
 import 'package:dio/dio.dart';
@@ -7,19 +8,53 @@ class CameraRepository {
     required this.dio,
     this.demoMode = false,
     this.cacheTtl = const Duration(seconds: 30),
+    this.localCameraStore,
   });
 
   final Dio dio;
   final bool demoMode;
   final Duration cacheTtl;
+  final LocalCameraStore? localCameraStore;
   final Map<String, _CameraCacheEntry> _cache = {};
   final Map<String, Future<List<Camera>>> _inFlightRequests = {};
 
   /// Fetches cameras. Non-admin accounts have customer_id sharded implicitly.
   /// Standard GET /api/v5/cameras returns PaginatedDto<CameraResponseDto>.
-  Future<List<Camera>> getCameras({String? siteId, bool forceRefresh = false}) {
-    if (demoMode) return Future.value(_demoCameras);
+  Future<List<Camera>> getCameras({
+    String? siteId,
+    bool forceRefresh = false,
+  }) async {
+    final localCameras =
+        await localCameraStore?.getCameras() ?? const <Camera>[];
+    final visibleLocal = siteId == null
+        ? localCameras
+        : localCameras.where((camera) => camera.siteId == siteId).toList();
 
+    if (demoMode) {
+      final demoCameras = siteId == null
+          ? _demoCameras
+          : _demoCameras.where((camera) => camera.siteId == siteId);
+      return List<Camera>.unmodifiable([...visibleLocal, ...demoCameras]);
+    }
+
+    try {
+      final remote = await _getRemoteCameras(
+        siteId: siteId,
+        forceRefresh: forceRefresh,
+      );
+      return List<Camera>.unmodifiable([...visibleLocal, ...remote]);
+    } on CameraException {
+      if (visibleLocal.isNotEmpty) {
+        return List<Camera>.unmodifiable(visibleLocal);
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<Camera>> _getRemoteCameras({
+    String? siteId,
+    bool forceRefresh = false,
+  }) {
     final cacheKey = siteId ?? '*';
     final cached = _cache[cacheKey];
     if (!forceRefresh &&
@@ -47,6 +82,33 @@ class CameraRepository {
         });
     _inFlightRequests[cacheKey] = request;
     return request;
+  }
+
+  Future<Camera> addLocalCamera({
+    required String name,
+    required Uri rtspUri,
+    required String codec,
+    Uri? subStreamUri,
+  }) async {
+    final store = localCameraStore;
+    if (store == null) {
+      throw const CameraException('Local camera storage is unavailable.');
+    }
+    final camera = await store.addCamera(
+      name: name,
+      rtspUri: rtspUri,
+      codec: codec,
+      subStreamUri: subStreamUri,
+    );
+    invalidateCameraCache();
+    return camera;
+  }
+
+  Future<void> deleteLocalCamera(String cameraId) async {
+    final store = localCameraStore;
+    if (store == null || !cameraId.startsWith('local-rtsp-')) return;
+    await store.deleteCamera(cameraId);
+    invalidateCameraCache();
   }
 
   Future<List<Camera>> _fetchCameras({String? siteId}) async {

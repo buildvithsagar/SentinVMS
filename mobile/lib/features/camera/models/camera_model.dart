@@ -11,6 +11,7 @@ class Camera extends Equatable {
     required this.codec,
     required this.ptzCapable,
     required this.status,
+    this.subStreamUrl,
   });
 
   factory Camera.fromJson(Map<String, dynamic> json) {
@@ -20,6 +21,10 @@ class Camera extends Equatable {
       name: json['cameraName'] as String? ?? json['name'] as String? ?? '',
       ipAddress: json['ipAddress'] as String? ?? '',
       rtspUrl: json['streamUri'] as String? ?? json['rtspUrl'] as String? ?? '',
+      subStreamUrl:
+          json['subStreamUri'] as String? ??
+          json['subStreamUrl'] as String? ??
+          json['streamUriSub'] as String?,
       onvifProfile: json['onvifProfile'] as String? ?? 'S',
       codec: json['codec'] as String? ?? 'H264',
       ptzCapable:
@@ -33,10 +38,21 @@ class Camera extends Equatable {
   final String name;
   final String ipAddress;
   final String rtspUrl;
+  final String? subStreamUrl;
   final String onvifProfile;
   final String codec;
   final bool ptzCapable;
   final String status;
+
+  bool get usesDirectRtsp => id.startsWith('local-rtsp-');
+
+  bool get hasSubStream => subStreamUrl?.trim().isNotEmpty ?? false;
+
+  bool usesSubStreamForGrid(int gridDimension) =>
+      gridDimension >= 3 && hasSubStream;
+
+  String streamUrlForGrid(int gridDimension) =>
+      usesSubStreamForGrid(gridDimension) ? subStreamUrl! : rtspUrl;
 
   Camera copyWith({
     String? id,
@@ -44,6 +60,7 @@ class Camera extends Equatable {
     String? name,
     String? ipAddress,
     String? rtspUrl,
+    String? subStreamUrl,
     String? onvifProfile,
     String? codec,
     bool? ptzCapable,
@@ -55,6 +72,7 @@ class Camera extends Equatable {
       name: name ?? this.name,
       ipAddress: ipAddress ?? this.ipAddress,
       rtspUrl: rtspUrl ?? this.rtspUrl,
+      subStreamUrl: subStreamUrl ?? this.subStreamUrl,
       onvifProfile: onvifProfile ?? this.onvifProfile,
       codec: codec ?? this.codec,
       ptzCapable: ptzCapable ?? this.ptzCapable,
@@ -69,6 +87,7 @@ class Camera extends Equatable {
       'name': name,
       'ipAddress': ipAddress,
       'rtspUrl': rtspUrl,
+      if (subStreamUrl != null) 'subStreamUrl': subStreamUrl,
       'onvifProfile': onvifProfile,
       'codec': codec,
       'ptzCapable': ptzCapable,
@@ -83,6 +102,7 @@ class Camera extends Equatable {
     name,
     ipAddress,
     rtspUrl,
+    subStreamUrl,
     onvifProfile,
     codec,
     ptzCapable,

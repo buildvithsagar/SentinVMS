@@ -64,7 +64,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(buildTestWidget());
 
-      expect(find.text('Live Viewport Grid'), findsOneWidget);
+      expect(find.text('Live monitoring'), findsOneWidget);
 
       expect(find.text('1'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);

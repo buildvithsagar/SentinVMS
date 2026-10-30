@@ -1,10 +1,13 @@
 import 'dart:ui';
 
+import 'package:app/core/core.dart';
 import 'package:app/features/device_onboarding/device_onboarding.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+
+typedef DeviceCodeScanner = Future<String?> Function(BuildContext context);
 
 /// Enterprise Device Details Registration Form Screen
 /// Refined Apple/Verkada Dark Glassmorphism design system (#0F172A canvas,
@@ -16,6 +19,7 @@ class DeviceDetailsFormPage extends StatefulWidget {
     this.autoStartScan = false,
     this.initialSerialNumber,
     this.initialDeviceName,
+    this.scanCode,
     super.key,
   });
 
@@ -24,12 +28,15 @@ class DeviceDetailsFormPage extends StatefulWidget {
   final bool autoStartScan;
   final String? initialSerialNumber;
   final String? initialDeviceName;
+  final DeviceCodeScanner? scanCode;
 
   @override
   State<DeviceDetailsFormPage> createState() => _DeviceDetailsFormPageState();
 }
 
 class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
+  static const _payloadParser = DeviceCodePayloadParser();
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _snController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
@@ -39,6 +46,7 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  DeviceCodePayload? _lastScannedPayload;
 
   @override
   void initState() {
@@ -66,15 +74,52 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
   }
 
   Future<void> _triggerScanner() async {
-    final scannedCode = await Navigator.push<String?>(
-      context,
-      MaterialPageRoute(builder: (context) => const ScannerView()),
-    );
-    if (scannedCode != null && scannedCode.isNotEmpty) {
-      setState(() {
-        _snController.text = scannedCode;
-      });
+    final scanner = widget.scanCode;
+    final scannedCode = scanner == null
+        ? await Navigator.push<String?>(
+            context,
+            MaterialPageRoute(builder: (context) => const ScannerView()),
+          )
+        : await scanner(context);
+    if (!mounted || scannedCode == null || scannedCode.trim().isEmpty) return;
+
+    final payload = _payloadParser.parse(scannedCode);
+    if (!payload.hasDeviceIdentity) {
+      setState(() => _lastScannedPayload = payload);
+      final message = payload.containsRtspUrl
+          ? 'RTSP URL detected, but it does not contain a serial or UID. '
+                'Use Add RTSP Camera for this code.'
+          : 'Code scanned, but its serial or UID was not recognized. '
+                'Enter the serial number manually.';
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: VmsColors.warning),
+        );
+      return;
     }
+
+    setState(() {
+      _lastScannedPayload = payload;
+      _snController.text = payload.serialNumber!;
+      if (_nameController.text.trim().isEmpty && payload.deviceName != null) {
+        _nameController.text = payload.deviceName!;
+      }
+      if (payload.username != null) {
+        _usernameController.text = payload.username!;
+      }
+    });
+
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '${payload.formatLabel} recognized. Verify the details before saving.',
+          ),
+          backgroundColor: VmsColors.success,
+        ),
+      );
   }
 
   void _submitForm(BuildContext context) {
@@ -95,12 +140,12 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
   @override
   Widget build(BuildContext context) {
     // Subtle Dark Glassmorphism Palette
-    const baseCanvas = Color(0xFF0F172A);
-    const primaryText = Color(0xFFF8FAFC);
-    const mutedText = Color(0xFF94A3B8);
-    const activeBlue = Color(0xFF38BDF8);
-    const errorRed = Color(0xFFEF4444);
-    const glassBorder = Color(0xFF334155);
+    const baseCanvas = VmsColors.canvas;
+    const primaryText = VmsColors.textPrimary;
+    const mutedText = VmsColors.textSecondary;
+    const activeBlue = VmsColors.primary;
+    const errorRed = VmsColors.danger;
+    const glassBorder = VmsColors.border;
 
     final readableMode = widget.mode == 'insta_on'
         ? 'InstaOn P2P'
@@ -117,7 +162,7 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
               if (state is DeviceOnboardingSuccess) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    backgroundColor: const Color(0xFF1E293B),
+                    backgroundColor: VmsColors.surfaceHigh,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: const BorderSide(color: activeBlue),
@@ -149,7 +194,7 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
               } else if (state is DeviceOnboardingFailure) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    backgroundColor: const Color(0xFF7F1D1D),
+                    backgroundColor: VmsColors.danger,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: const BorderSide(color: errorRed),
@@ -183,7 +228,7 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                       gradient: RadialGradient(
                         center: Alignment(-0.8, -0.6),
                         radius: 1.2,
-                        colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                        colors: [VmsColors.canvasRaised, VmsColors.canvas],
                       ),
                     ),
                     child: SafeArea(
@@ -199,9 +244,9 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                               children: [
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF1E293B,
-                                    ).withValues(alpha: 0.6),
+                                    color: VmsColors.surfaceHigh.withValues(
+                                      alpha: 0.8,
+                                    ),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: glassBorder.withValues(alpha: 0.5),
@@ -402,6 +447,23 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                                           ),
                                           const SizedBox(height: 20),
 
+                                          if (_lastScannedPayload
+                                              case final payload?) ...[
+                                            VmsInfoBanner(
+                                              title: payload.hasDeviceIdentity
+                                                  ? 'Device code parsed'
+                                                  : 'Code needs review',
+                                              message: _scanSummary(payload),
+                                              icon: payload.hasDeviceIdentity
+                                                  ? Icons.qr_code_2_rounded
+                                                  : Icons.info_outline_rounded,
+                                              color: payload.hasDeviceIdentity
+                                                  ? VmsColors.success
+                                                  : VmsColors.warning,
+                                            ),
+                                            const SizedBox(height: 20),
+                                          ],
+
                                           // 1. Serial Number Field
                                           _buildFieldHeader(
                                             'SERIAL NUMBER (SN)',
@@ -409,6 +471,7 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           TextFormField(
+                                            key: const Key('deviceSerialField'),
                                             controller: _snController,
                                             style: const TextStyle(
                                               color: primaryText,
@@ -421,6 +484,11 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                                               suffixIcon:
                                                   widget.mode == 'insta_on'
                                                   ? IconButton(
+                                                      key: const Key(
+                                                        'scanDeviceCodeButton',
+                                                      ),
+                                                      tooltip:
+                                                          'Scan device code',
                                                       icon: const Icon(
                                                         Icons
                                                             .qr_code_scanner_rounded,
@@ -451,6 +519,7 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           TextFormField(
+                                            key: const Key('deviceNameField'),
                                             controller: _nameController,
                                             style: const TextStyle(
                                               color: primaryText,
@@ -479,6 +548,9 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           TextFormField(
+                                            key: const Key(
+                                              'deviceUsernameField',
+                                            ),
                                             controller: _usernameController,
                                             style: const TextStyle(
                                               color: primaryText,
@@ -595,6 +667,24 @@ class _DeviceDetailsFormPageState extends State<DeviceDetailsFormPage> {
         letterSpacing: 1,
       ),
     );
+  }
+
+  String _scanSummary(DeviceCodePayload payload) {
+    if (!payload.hasDeviceIdentity) {
+      return payload.containsRtspUrl
+          ? 'This is an RTSP stream URL, not a device serial. Add it from '
+                'the RTSP camera screen.'
+          : 'The code was read successfully, but no supported serial, UID, '
+                'device ID, or P2P ID was found.';
+    }
+
+    final details = <String>[
+      if (payload.vendor != null) payload.vendor!,
+      if (payload.model != null) payload.model!,
+      if (payload.ipAddress != null) 'IP ${payload.ipAddress}',
+    ];
+    final suffix = details.isEmpty ? '' : ' ${details.join(' • ')}.';
+    return 'Serial/UID extracted from ${payload.formatLabel}.$suffix';
   }
 
   InputDecoration _buildInputDecoration({

@@ -1,4 +1,6 @@
 import 'dart:ui';
+
+import 'package:app/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,11 +18,11 @@ class OnboardingModeSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const baseCanvas = Color(0xFF0F172A);
-    const primaryText = Color(0xFFF8FAFC);
-    const mutedText = Color(0xFF94A3B8);
-    const glassBorder = Color(0xFF334155);
-    const activeBlue = Color(0xFF38BDF8);
+    const baseCanvas = VmsColors.surface;
+    const primaryText = VmsColors.textPrimary;
+    const mutedText = VmsColors.textSecondary;
+    const glassBorder = VmsColors.border;
+    const activeBlue = VmsColors.primary;
 
     return ClipRRect(
       borderRadius: const BorderRadius.only(
@@ -65,43 +67,46 @@ class OnboardingModeSheet extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'ONBOARDING METHOD',
-                        style: TextStyle(
-                          color: mutedText,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10,
-                          letterSpacing: 1.2,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'ONBOARDING METHOD',
+                          style: TextStyle(
+                            color: mutedText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                            letterSpacing: 1.2,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        categoryName,
-                        style: const TextStyle(
-                          color: primaryText,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                        const SizedBox(height: 2),
+                        Text(
+                          categoryName,
+                          style: const TextStyle(
+                            color: primaryText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
+                      color: VmsColors.surfaceHigh,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: glassBorder),
                     ),
                     child: Text(
                       category.toUpperCase(),
                       style: const TextStyle(
-                        color: Color(0xFFCBD5E1),
+                        color: VmsColors.textSecondary,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.5,
@@ -152,7 +157,7 @@ class OnboardingModeSheet extends StatelessWidget {
                   context.pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      backgroundColor: const Color(0xFF1E293B),
+                      backgroundColor: VmsColors.surfaceHigh,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
@@ -215,10 +220,10 @@ class _ModeTileState extends State<_ModeTile> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryText = Color(0xFFF8FAFC);
-    const mutedText = Color(0xFF94A3B8);
-    const glassBorder = Color(0xFF334155);
-    const activeBlue = Color(0xFF38BDF8);
+    const primaryText = VmsColors.textPrimary;
+    const mutedText = VmsColors.textSecondary;
+    const glassBorder = VmsColors.border;
+    const activeBlue = VmsColors.primary;
 
     return AnimatedScale(
       scale: _isPressed ? 0.98 : 1.0,
@@ -233,8 +238,8 @@ class _ModeTileState extends State<_ModeTile> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: _isPressed
-                ? const Color(0xFF1E293B).withValues(alpha: 0.8)
-                : const Color(0xFF1E293B).withValues(alpha: 0.45),
+                ? VmsColors.surfaceHighest
+                : VmsColors.surfaceHigh,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _isPressed
@@ -249,13 +254,13 @@ class _ModeTileState extends State<_ModeTile> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF334155).withValues(alpha: 0.4),
+                  color: VmsColors.surfaceHighest,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: glassBorder.withValues(alpha: 0.6)),
                 ),
                 child: Icon(
                   widget.icon,
-                  color: _isPressed ? activeBlue : const Color(0xFFE2E8F0),
+                  color: _isPressed ? activeBlue : VmsColors.textSecondary,
                   size: 22,
                 ),
               ),
@@ -264,7 +269,10 @@ class _ModeTileState extends State<_ModeTile> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
                       children: [
                         Text(
                           widget.title,
@@ -275,22 +283,19 @@ class _ModeTileState extends State<_ModeTile> {
                           ),
                         ),
                         if (widget.badgeText != null) ...[
-                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF334155,
-                              ).withValues(alpha: 0.5),
+                              color: VmsColors.surfaceHighest,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               widget.badgeText!,
                               style: const TextStyle(
-                                color: Color(0xFFCBD5E1),
+                                color: VmsColors.textSecondary,
                                 fontSize: 8,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.3,

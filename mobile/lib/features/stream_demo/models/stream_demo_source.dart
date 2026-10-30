@@ -1,3 +1,5 @@
+import 'package:app/core/video/rtsp_uri.dart';
+
 enum StreamDemoMode {
   directRtsp,
   localGateway,
@@ -49,26 +51,7 @@ class StreamDemoSourceParser {
   /// `@` separates credentials from the host, so earlier occurrences are
   /// encoded as part of user-info.
   static String normalize(String value) {
-    final input = value.trim();
-    final match = RegExp(
-      r'^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/(.*)$',
-      dotAll: true,
-    ).firstMatch(input);
-    if (match == null) return input;
-
-    final scheme = match.group(1)!.toLowerCase();
-    final remainder = match.group(2)!;
-    final lastAt = remainder.lastIndexOf('@');
-    if (lastAt < 0) return '$scheme://$remainder';
-
-    final userInfo = remainder.substring(0, lastAt);
-    final hostAndPath = remainder.substring(lastAt + 1);
-    final separator = userInfo.indexOf(':');
-    final normalizedUserInfo = separator < 0
-        ? _encodeUserInfoPart(userInfo)
-        : '${_encodeUserInfoPart(userInfo.substring(0, separator))}:'
-              '${_encodeUserInfoPart(userInfo.substring(separator + 1))}';
-    return '$scheme://$normalizedUserInfo@$hostAndPath';
+    return RtspUriParser.normalize(value);
   }
 
   static String? validate(String? value, StreamDemoMode mode) {
@@ -129,13 +112,5 @@ class StreamDemoSourceParser {
       gatewayToken: gatewayToken?.trim(),
       compatibilityMode: compatibilityMode,
     );
-  }
-
-  static String _encodeUserInfoPart(String value) {
-    try {
-      return Uri.encodeComponent(Uri.decodeComponent(value));
-    } on FormatException {
-      return Uri.encodeComponent(value);
-    }
   }
 }

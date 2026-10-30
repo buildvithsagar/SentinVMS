@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:app/core/core.dart';
 import 'package:app/features/device_onboarding/data/device_onboarding_repository.dart';
 import 'package:app/features/device_onboarding/presentation/widgets/onboarding_mode_sheet.dart';
 import 'package:flutter/material.dart';
@@ -61,10 +62,10 @@ class _DeviceCategoryPageState extends State<DeviceCategoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    const baseCanvas = Color(0xFF0F172A);
-    const primaryText = Color(0xFFF8FAFC);
-    const mutedText = Color(0xFF94A3B8);
-    const glassBorder = Color(0xFF334155);
+    const baseCanvas = VmsColors.canvas;
+    const primaryText = VmsColors.textPrimary;
+    const mutedText = VmsColors.textSecondary;
+    const glassBorder = VmsColors.border;
 
     final filtered = _filteredCategories;
 
@@ -75,7 +76,7 @@ class _DeviceCategoryPageState extends State<DeviceCategoryPage> {
           gradient: RadialGradient(
             center: Alignment(-0.8, -0.6),
             radius: 1.3,
-            colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+            colors: [VmsColors.canvasRaised, VmsColors.canvas],
           ),
         ),
         child: SafeArea(
@@ -92,7 +93,7 @@ class _DeviceCategoryPageState extends State<DeviceCategoryPage> {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B).withValues(alpha: 0.7),
+                        color: VmsColors.surfaceHigh.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: glassBorder.withValues(alpha: 0.6),
@@ -130,7 +131,7 @@ class _DeviceCategoryPageState extends State<DeviceCategoryPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withValues(alpha: 0.55),
+                    color: VmsColors.surface.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: glassBorder.withValues(alpha: 0.7),
@@ -221,6 +222,7 @@ class _DeviceCategoryPageState extends State<DeviceCategoryPage> {
           ),
         ),
       ),
+      bottomNavigationBar: const VmsNavigationBar(currentRoute: '/cameras'),
     );
   }
 
@@ -236,11 +238,11 @@ class _DeviceCategoryPageState extends State<DeviceCategoryPage> {
         barrierDismissible: false,
         builder: (dialogContext) {
           return const AlertDialog(
-            backgroundColor: Color(0xFF1E293B),
+            backgroundColor: VmsColors.surface,
             content: Row(
               children: [
                 CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2DD4BF)),
+                  valueColor: AlwaysStoppedAnimation<Color>(VmsColors.primary),
                 ),
                 SizedBox(width: 16),
                 Expanded(
@@ -287,7 +289,7 @@ class _DeviceCategoryPageState extends State<DeviceCategoryPage> {
   ) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: VmsColors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -545,8 +547,8 @@ class _MinimalCategoryGridCardState extends State<_MinimalCategoryGridCard> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryText = Color(0xFFF8FAFC);
-    const glassBorder = Color(0xFF334155);
+    const primaryText = VmsColors.textPrimary;
+    const glassBorder = VmsColors.border;
 
     return AnimatedScale(
       scale: _isPressed ? 0.96 : 1.0,
@@ -569,12 +571,10 @@ class _MinimalCategoryGridCardState extends State<_MinimalCategoryGridCard> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    const Color(
-                      0xFF1E293B,
-                    ).withValues(alpha: _isPressed ? 0.9 : 0.7),
-                    const Color(
-                      0xFF0F172A,
-                    ).withValues(alpha: _isPressed ? 0.95 : 0.85),
+                    VmsColors.surfaceHigh.withValues(
+                      alpha: _isPressed ? 1 : 0.9,
+                    ),
+                    VmsColors.surface.withValues(alpha: _isPressed ? 1 : 0.94),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(24),
@@ -607,7 +607,7 @@ class _MinimalCategoryGridCardState extends State<_MinimalCategoryGridCard> {
                         end: Alignment.bottomRight,
                         colors: [
                           widget.category.accentColor.withValues(alpha: 0.25),
-                          const Color(0xFF0F172A),
+                          VmsColors.canvas,
                         ],
                       ),
                       borderRadius: BorderRadius.circular(20),

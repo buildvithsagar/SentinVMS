@@ -2,10 +2,13 @@ import 'package:app/core/theme/vms_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 
+enum RtspPlayerStatus { connecting, buffering, live, paused, failed }
+
 class RtspPlayerPane extends StatefulWidget {
-  const RtspPlayerPane({required this.uri, super.key});
+  const RtspPlayerPane({required this.uri, this.onStatusChanged, super.key});
 
   final Uri uri;
+  final ValueChanged<RtspPlayerStatus>? onStatusChanged;
 
   @override
   State<RtspPlayerPane> createState() => _RtspPlayerPaneState();
@@ -16,12 +19,28 @@ class _RtspPlayerPaneState extends State<RtspPlayerPane>
   late final VlcPlayerController _controller;
   var _muted = false;
   var _resumePlayback = false;
+  var _status = RtspPlayerStatus.connecting;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _controller = _createController(widget.uri);
+    _controller = _createController(widget.uri)..addListener(_handleValue);
+  }
+
+  void _handleValue() {
+    final next = _statusFor(_controller.value);
+    if (next == _status) return;
+    _status = next;
+    widget.onStatusChanged?.call(next);
+  }
+
+  RtspPlayerStatus _statusFor(VlcPlayerValue value) {
+    if (value.hasError) return RtspPlayerStatus.failed;
+    if (value.isPlaying) return RtspPlayerStatus.live;
+    if (value.isBuffering) return RtspPlayerStatus.buffering;
+    if (value.isInitialized) return RtspPlayerStatus.paused;
+    return RtspPlayerStatus.connecting;
   }
 
   @override
@@ -61,6 +80,7 @@ class _RtspPlayerPaneState extends State<RtspPlayerPane>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _controller
+      ..removeListener(_handleValue)
       ..stop()
       ..dispose();
     super.dispose();
@@ -144,13 +164,13 @@ class _RtspPlayerPaneState extends State<RtspPlayerPane>
           builder: (context, value, _) => Row(
             children: [
               _StatusChip(
-                label: value.hasError
-                    ? 'ERROR'
-                    : value.isPlaying
-                    ? 'RTSP LIVE'
-                    : value.isBuffering
-                    ? 'BUFFERING'
-                    : 'CONNECTING',
+                label: switch (_statusFor(value)) {
+                  RtspPlayerStatus.failed => 'ERROR',
+                  RtspPlayerStatus.live => 'RTSP LIVE',
+                  RtspPlayerStatus.buffering => 'BUFFERING',
+                  RtspPlayerStatus.paused => 'PAUSED',
+                  RtspPlayerStatus.connecting => 'CONNECTING',
+                },
                 active: value.isPlaying,
               ),
               const Spacer(),

@@ -1,460 +1,357 @@
+import 'package:app/core/core.dart';
 import 'package:app/features/alarms/alarms.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-/// Alarm list page that displays AI-triggered alarm events with
-/// acknowledge functionality via BLoC.
 class AlarmListPage extends StatelessWidget {
   const AlarmListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      drawer: const VmsDrawer(currentRoute: '/alarms'),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8)),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              context.go('/live_grid');
-            }
-          },
+        title: const VmsPageTitle(
+          title: 'Alarms',
+          subtitle: 'Review and acknowledge incidents',
         ),
-        title: const Text(
-          'Alarms',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+        actions: [
+          IconButton(
+            tooltip: 'Refresh alarms',
+            onPressed: () => context.read<AlarmBloc>().add(const FetchAlarms()),
+            icon: const Icon(Icons.refresh_rounded),
           ),
-        ),
-        iconTheme: const IconThemeData(color: Color(0xFF94A3B8)),
+          const SizedBox(width: 4),
+        ],
       ),
-      body: BlocBuilder<AlarmBloc, AlarmState>(
-        builder: (context, state) {
-          if (state is AlarmLoading) {
-            return const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
-              ),
-            );
-          }
-
+      body: BlocConsumer<AlarmBloc, AlarmState>(
+        listener: (context, state) {
           if (state is AlarmError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: Color(0xFFEF4444),
-                      size: 48,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Failed to load alarms',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      state.message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        context.read<AlarmBloc>().add(const FetchAlarms());
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          if (state is AlarmLoaded) {
-            final alarms = state.alarms;
-
-            if (alarms.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.notifications_off_outlined,
-                      color: Color(0xFF94A3B8),
-                      size: 56,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No alarms',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: const Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text('Alarm action failed: ${state.message}'),
+                  backgroundColor: VmsColors.danger,
                 ),
               );
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: alarms.length,
-              itemBuilder: (context, index) {
-                final alarm = alarms[index];
-                return _AlarmCard(alarm: alarm);
-              },
+          }
+        },
+        builder: (context, state) {
+          if (state is AlarmLoading || state is AlarmInitial) {
+            return const VmsLoadingView(label: 'Loading alarms...');
+          }
+          if (state is AlarmError) {
+            return VmsStateView.error(
+              title: 'Could not load alarms',
+              message: '${state.message}\nCheck the control-plane connection.',
+              onRetry: () => context.read<AlarmBloc>().add(const FetchAlarms()),
+            );
+          }
+          if (state is! AlarmLoaded) return const SizedBox.shrink();
+          if (state.alarms.isEmpty) {
+            return VmsStateView.empty(
+              icon: Icons.notifications_off_outlined,
+              title: 'No alarm events',
+              message: 'New camera incidents will appear here in real time.',
+              actionLabel: 'Refresh',
+              onAction: () =>
+                  context.read<AlarmBloc>().add(const FetchAlarms()),
             );
           }
 
-          // AlarmInitial – show nothing until fetched
-          return const SizedBox.shrink();
+          final activeCount = state.alarms
+              .where((alarm) => alarm.isActive)
+              .length;
+          final resolvedCount = state.alarms.length - activeCount;
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<AlarmBloc>().add(const FetchAlarms());
+            },
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                    child: Row(
+                      children: [
+                        VmsStatusBadge(
+                          label: '$activeCount ACTIVE',
+                          color: activeCount > 0
+                              ? VmsColors.danger
+                              : VmsColors.success,
+                          icon: activeCount > 0
+                              ? Icons.warning_amber_rounded
+                              : Icons.verified_outlined,
+                        ),
+                        const SizedBox(width: 8),
+                        VmsStatusBadge(
+                          label: '$resolvedCount RESOLVED',
+                          color: VmsColors.textSecondary,
+                          icon: Icons.check_circle_outline_rounded,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                  sliver: SliverList.separated(
+                    itemCount: state.alarms.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) =>
+                        _AlarmCard(alarm: state.alarms[index]),
+                  ),
+                ),
+              ],
+            ),
+          );
         },
       ),
+      bottomNavigationBar: const VmsNavigationBar(currentRoute: '/alarms'),
     );
   }
 }
 
-/// Individual alarm card with status indicator, icon, and ACK button.
 class _AlarmCard extends StatelessWidget {
   const _AlarmCard({required this.alarm});
 
   final Alarm alarm;
 
-  IconData _iconForEventClass(String eventClass) {
-    switch (eventClass.toUpperCase()) {
-      case 'INTRUSION':
-        return Icons.warning_amber_rounded;
-      case 'FIRE':
-        return Icons.local_fire_department;
-      case 'LOITERING':
-        return Icons.directions_walk;
-      case 'VANDALISM':
-        return Icons.broken_image;
-      default:
-        return Icons.notifications_active;
-    }
-  }
-
-  void _showAlarmDetailModal(BuildContext context, Alarm alarm) {
-    final statusColor = alarm.isActive
-        ? const Color(0xFFEF4444)
-        : const Color(0xFF10B981);
-
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (bottomSheetContext) {
-        return BlocProvider.value(
-          value: context.read<AlarmBloc>(),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+  @override
+  Widget build(BuildContext context) {
+    final active = alarm.isActive;
+    final color = active ? VmsColors.danger : VmsColors.success;
+    return VmsSurfaceCard(
+      key: Key('alarmCard_${alarm.id}'),
+      semanticLabel:
+          '${alarm.eventClass} alarm from ${alarm.cameraName}, ${active ? 'active' : 'resolved'}',
+      onTap: () => _showDetails(context),
+      padding: EdgeInsets.zero,
+      child: Row(
+        children: [
+          Container(width: 4, height: 86, color: color),
+          const SizedBox(width: 12),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.11),
+              borderRadius: BorderRadius.circular(VmsRadii.sm),
+            ),
+            child: Icon(_eventIcon(alarm.eventClass), color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      alarm.eventClass.toUpperCase(),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+                    Expanded(
                       child: Text(
-                        alarm.isActive ? 'ACTIVE THREAT' : 'RESOLVED',
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        _readableEvent(alarm.eventClass),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
+                    ),
+                    VmsStatusBadge(
+                      label: active ? 'ACTIVE' : 'RESOLVED',
+                      color: color,
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                // Camera Name & Time Info
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.videocam,
-                      color: Color(0xFF94A3B8),
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      alarm.cameraName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 5),
+                Text(
+                  alarm.cameraName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.access_time,
-                      color: Color(0xFF94A3B8),
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      DateFormat(
-                        'dd MMM yyyy, HH:mm:ss',
-                      ).format(alarm.timestamp),
-                      style: const TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
+                Text(
+                  DateFormat('dd MMM · HH:mm:ss').format(alarm.timestamp),
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
-                const SizedBox(height: 16),
-                // Mock Snapshot Frame
-                AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Positioned.fill(
-                          child: Opacity(
-                            opacity: 0.15,
-                            child: GridPaper(
-                              color: statusColor,
-                              subdivisions: 1,
-                            ),
-                          ),
-                        ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.image,
-                              color: statusColor.withValues(alpha: 0.5),
-                              size: 36,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${alarm.eventClass} Alert Snapshot Frame',
-                              style: const TextStyle(
-                                color: Colors.white38,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (alarm.isActive)
-                          Positioned(
-                            top: 25,
-                            left: 40,
-                            right: 40,
-                            bottom: 25,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: const Color(0xFFEF4444),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Stack(
-                                children: [
-                                  Positioned(
-                                    top: 0,
-                                    left: 0,
-                                    child: Container(
-                                      color: const Color(0xFFEF4444),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 1.5,
-                                      ),
-                                      child: Text(
-                                        'IVA DETECTION: ${alarm.eventClass}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 7,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Acknowledge Action Button
-                if (alarm.isActive)
-                  ElevatedButton.icon(
-                    key: const Key('modalAcknowledgeButton'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    icon: const Icon(Icons.check),
-                    label: const Text(
-                      'ACKNOWLEDGE INCIDENT',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(bottomSheetContext);
-                      context.read<AlarmBloc>().add(
-                        AlarmAcknowledged(alarmId: alarm.id),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Incident ${alarm.id} acknowledged successfully.',
-                          ),
-                        ),
-                      );
-                    },
-                  )
-                else
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white10,
-                      foregroundColor: Colors.white38,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: null,
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('ALARM RESOLVED & ACKNOWLEDGED'),
-                  ),
               ],
             ),
           ),
-        );
-      },
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: Icon(
+              Icons.chevron_right_rounded,
+              color: VmsColors.textMuted,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isActive = alarm.isActive;
-    final statusColor = isActive
-        ? const Color(0xFFEF4444)
-        : const Color(0xFF10B981);
-
-    return GestureDetector(
-      key: Key('alarmCard_${alarm.id}'),
-      onTap: () => _showAlarmDetailModal(context, alarm),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: IntrinsicHeight(
-            child: Row(
-              children: [
-                Container(width: 4, color: statusColor),
-                Expanded(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          _iconForEventClass(alarm.eventClass),
-                          color: statusColor,
-                          size: 24,
-                        ),
-                      ),
-                      title: Text(
-                        alarm.eventClass,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          '${alarm.cameraName} • '
-                          '${DateFormat('dd MMM yyyy, HH:mm').format(alarm.timestamp)}',
-                          style: const TextStyle(
-                            color: Color(0xFF94A3B8),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      trailing: const Icon(
-                        Icons.chevron_right,
-                        color: Color(0xFF94A3B8),
-                      ),
+  void _showDetails(BuildContext context) {
+    final active = alarm.isActive;
+    final color = active ? VmsColors.danger : VmsColors.success;
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => BlocProvider.value(
+        value: context.read<AlarmBloc>(),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            4,
+            20,
+            20 + MediaQuery.viewInsetsOf(sheetContext).bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: VmsPageTitle(
+                      title: _readableEvent(alarm.eventClass),
+                      subtitle: alarm.cameraName,
                     ),
                   ),
+                  VmsStatusBadge(
+                    label: active ? 'ACTIVE' : 'RESOLVED',
+                    color: color,
+                    icon: active
+                        ? Icons.warning_amber_rounded
+                        : Icons.check_circle_outline_rounded,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              VmsSurfaceCard(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  children: [
+                    _DetailRow(
+                      icon: Icons.schedule_rounded,
+                      label: 'Detected',
+                      value: DateFormat(
+                        'dd MMM yyyy, HH:mm:ss',
+                      ).format(alarm.timestamp),
+                    ),
+                    const Divider(height: 24),
+                    _DetailRow(
+                      icon: Icons.tag_rounded,
+                      label: 'Incident ID',
+                      value: alarm.id,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(VmsRadii.md),
+                  border: Border.all(color: VmsColors.border),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(
+                      Icons.image_not_supported_outlined,
+                      color: VmsColors.textMuted,
+                      size: 32,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Snapshot not provided for this event',
+                      style: TextStyle(color: VmsColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              if (active)
+                FilledButton.icon(
+                  key: const Key('modalAcknowledgeButton'),
+                  onPressed: () {
+                    context.read<AlarmBloc>().add(
+                      AlarmAcknowledged(alarmId: alarm.id),
+                    );
+                    Navigator.pop(sheetContext);
+                  },
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text('ACKNOWLEDGE INCIDENT'),
+                )
+              else
+                OutlinedButton.icon(
+                  onPressed: null,
+                  icon: const Icon(Icons.verified_outlined),
+                  label: const Text('INCIDENT ACKNOWLEDGED'),
+                ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  static String _readableEvent(String value) {
+    final normalized = value.replaceAll('_', ' ').trim().toLowerCase();
+    if (normalized.isEmpty) return 'Camera event';
+    return normalized
+        .split(' ')
+        .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
+  }
+
+  static IconData _eventIcon(String eventClass) {
+    return switch (eventClass.toUpperCase()) {
+      'INTRUSION' => Icons.warning_amber_rounded,
+      'FIRE' => Icons.local_fire_department_rounded,
+      'LOITERING' => Icons.directions_walk_rounded,
+      'VANDALISM' => Icons.broken_image_outlined,
+      _ => Icons.notifications_active_outlined,
+    };
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: VmsColors.textSecondary, size: 19),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: VmsColors.textPrimary),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

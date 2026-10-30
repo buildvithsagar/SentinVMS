@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:app/core/core.dart';
 import 'package:app/features/camera/camera.dart';
 import 'package:app/features/export/export.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 /// Export wizard page that connects with real backends:
@@ -131,7 +131,7 @@ class _ExportPageState extends State<ExportPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Export initiated successfully'),
-          backgroundColor: const Color(0xFF2563EB),
+          backgroundColor: VmsColors.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -144,7 +144,7 @@ class _ExportPageState extends State<ExportPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to start export: $e'),
-          backgroundColor: const Color(0xFFEF4444),
+          backgroundColor: VmsColors.danger,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -229,8 +229,8 @@ class _ExportPageState extends State<ExportPage> {
     return Theme(
       data: Theme.of(context).copyWith(
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF2DD4BF),
-          surface: Color(0xFF1E293B),
+          primary: VmsColors.primary,
+          surface: VmsColors.surface,
         ),
       ),
       child: child ?? const SizedBox.shrink(),
@@ -242,68 +242,53 @@ class _ExportPageState extends State<ExportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      drawer: const VmsDrawer(currentRoute: '/exports'),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8)),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              context.go('/live_grid');
-            }
+        title: const VmsPageTitle(
+          title: 'Exports',
+          subtitle: 'Create and track evidence packages',
+        ),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: Center(child: VmsEnvironmentBadge()),
+          ),
+        ],
+      ),
+      body: VmsContentConstraint(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await _loadCameras();
+            await _loadHistory();
           },
-        ),
-        title: const Text(
-          'Export',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ═══ Section 1: Create New Export ════════════════════════
+                _buildSectionHeader('Create New Export'),
+                const SizedBox(height: 12),
+                _buildCreateExportForm(),
+
+                const SizedBox(height: 32),
+
+                // ═══ Section 2: Export History ═══════════════════════════
+                _buildSectionHeader('Export History'),
+                const SizedBox(height: 12),
+                _buildExportHistoryContent(),
+              ],
+            ),
           ),
         ),
       ),
-      body: RefreshIndicator(
-        color: const Color(0xFF2563EB),
-        onRefresh: () async {
-          await _loadCameras();
-          await _loadHistory();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ═══ Section 1: Create New Export ════════════════════════
-              _buildSectionHeader('Create New Export'),
-              const SizedBox(height: 12),
-              _buildCreateExportForm(),
-
-              const SizedBox(height: 32),
-
-              // ═══ Section 2: Export History ═══════════════════════════
-              _buildSectionHeader('Export History'),
-              const SizedBox(height: 12),
-              _buildExportHistoryContent(),
-            ],
-          ),
-        ),
-      ),
+      bottomNavigationBar: const VmsNavigationBar(currentRoute: '/exports'),
     );
   }
 
   Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.bold,
-        fontSize: 18,
-      ),
-    );
+    return VmsSectionHeader(title: title);
   }
 
   // ── Create export form ────────────────────────────────────────────────
@@ -311,13 +296,7 @@ class _ExportPageState extends State<ExportPage> {
   Widget _buildCreateExportForm() {
     final dateFormat = DateFormat('dd MMM yyyy, HH:mm');
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
+    return VmsSurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -646,28 +625,10 @@ class _ExportPageState extends State<ExportPage> {
     }
 
     if (_exportJobs.isEmpty) {
-      return Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white12),
-          ),
-          child: const Column(
-            children: [
-              Icon(Icons.folder_open, size: 48, color: Color(0xFF94A3B8)),
-              SizedBox(height: 12),
-              Text(
-                'No exports requested yet',
-                style: TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return const VmsStateView(
+        icon: Icons.folder_open_rounded,
+        title: 'No evidence exports yet',
+        message: 'Completed and processing export jobs will appear here.',
       );
     }
 
@@ -680,222 +641,228 @@ class _ExportPageState extends State<ExportPage> {
         ? '${job.id.substring(0, 12)}…'
         : job.id;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row: Job ID + status badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.insert_drive_file_outlined,
-                    color: Color(0xFF94A3B8),
-                    size: 16,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: VmsSurfaceCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row: Job ID + status badge
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.insert_drive_file_outlined,
+                      color: Color(0xFF94A3B8),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      truncatedId,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    truncatedId,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13,
-                      fontFamily: 'monospace',
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    job.status,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Camera + time info
+            Text(
+              'Camera: ${job.cameraId} (${job.format})',
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${DateFormat('dd MMM HH:mm').format(job.startTime)}'
+              ' – ${DateFormat('dd MMM HH:mm').format(job.endTime)}',
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+            ),
+
+            // SHA-256 Hash Evidence Badge
+            if (job.sha256Hash != null) ...[
+              const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  job.status,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
+                  color: Colors.black38,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFF2DD4BF).withValues(alpha: 0.3),
                   ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.security,
+                      color: Color(0xFF2DD4BF),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'SHA-256: ${job.sha256Hash}',
+                        style: const TextStyle(
+                          color: Color(0xFF2DD4BF),
+                          fontSize: 10,
+                          fontFamily: 'monospace',
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
 
-          const SizedBox(height: 8),
-
-          // Camera + time info
-          Text(
-            'Camera: ${job.cameraId} (${job.format})',
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${DateFormat('dd MMM HH:mm').format(job.startTime)}'
-            ' – ${DateFormat('dd MMM HH:mm').format(job.endTime)}',
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-          ),
-
-          // SHA-256 Hash Evidence Badge
-          if (job.sha256Hash != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black38,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: const Color(0xFF2DD4BF).withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
+            // Progress bar for PROCESSING
+            if (job.status == 'PROCESSING' && job.progress != null) ...[
+              const SizedBox(height: 10),
+              Row(
                 children: [
-                  const Icon(
-                    Icons.security,
-                    color: Color(0xFF2DD4BF),
-                    size: 14,
-                  ),
-                  const SizedBox(width: 6),
                   Expanded(
-                    child: Text(
-                      'SHA-256: ${job.sha256Hash}',
-                      style: const TextStyle(
-                        color: Color(0xFF2DD4BF),
-                        fontSize: 10,
-                        fontFamily: 'monospace',
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: job.progress,
+                        backgroundColor: Colors.white12,
+                        valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                        minHeight: 6,
                       ),
-                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${(job.progress! * 100).toInt()}%',
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
 
-          // Progress bar for PROCESSING
-          if (job.status == 'PROCESSING' && job.progress != null) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: job.progress,
-                      backgroundColor: Colors.white12,
-                      valueColor: AlwaysStoppedAnimation<Color>(statusColor),
-                      minHeight: 6,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${(job.progress! * 100).toInt()}%',
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-
-          // Download button & Verify Signature for COMPLETED
-          if (job.isCompleted && job.downloadUrl != null) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2DD4BF),
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  icon: const Icon(Icons.share, size: 14),
-                  label: const Text(
-                    'SHARE EVIDENCE',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: () => _showEvidenceShareSheet(job),
-                ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  icon: const Icon(Icons.download, size: 14),
-                  label: const Text(
-                    'Download Clip',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                  ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Downloading clip: ${job.downloadUrl}'),
-                        backgroundColor: const Color(0xFF2563EB),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+            // Download button & Verify Signature for COMPLETED
+            if (job.isCompleted && job.downloadUrl != null) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2DD4BF),
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                    );
-                  },
-                ),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF10B981),
-                    side: const BorderSide(color: Color(0xFF10B981)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                    icon: const Icon(Icons.share, size: 14),
+                    label: const Text(
+                      'SHARE EVIDENCE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+                    onPressed: () => _showEvidenceShareSheet(job),
                   ),
-                  icon: const Icon(Icons.verified_user, size: 14),
-                  label: const Text(
-                    'Verify Legal Hash',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2563EB),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    icon: const Icon(Icons.download, size: 14),
+                    label: const Text(
+                      'Download Clip',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Downloading clip: ${job.downloadUrl}'),
+                          backgroundColor: const Color(0xFF2563EB),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  onPressed: () => _showHashVerificationDialog(job),
-                ),
-              ],
-            ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF10B981),
+                      side: const BorderSide(color: Color(0xFF10B981)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    icon: const Icon(Icons.verified_user, size: 14),
+                    label: const Text(
+                      'Verify Legal Hash',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () => _showHashVerificationDialog(job),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1148,14 +1115,14 @@ class _ExportPageState extends State<ExportPage> {
   Color _statusColor(String status) {
     switch (status) {
       case 'COMPLETED':
-        return const Color(0xFF10B981);
+        return VmsColors.success;
       case 'PROCESSING':
-        return const Color(0xFFF59E0B);
+        return VmsColors.warning;
       case 'FAILED':
-        return const Color(0xFFEF4444);
+        return VmsColors.danger;
       case 'PENDING':
       default:
-        return const Color(0xFF64748B);
+        return VmsColors.textMuted;
     }
   }
 }

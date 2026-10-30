@@ -78,7 +78,7 @@ class AppConfig {
       receiveTimeout: const Duration(seconds: 20),
       maxVideoDecoders: const int.fromEnvironment(
         'MAX_VIDEO_DECODERS',
-        defaultValue: 4,
+        defaultValue: 9,
       ),
     );
   }

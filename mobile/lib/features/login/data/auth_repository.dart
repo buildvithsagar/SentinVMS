@@ -66,7 +66,9 @@ class AuthRepository {
       }
     } catch (_) {}
     try {
-      await storage.clearAll();
+      // Camera RTSP credentials live in the same encrypted store and must
+      // remain available after an account logout. Remove only the auth token.
+      await storage.deleteRefreshToken();
     } catch (e) {
       // Log storage clear errors but don't block
     }

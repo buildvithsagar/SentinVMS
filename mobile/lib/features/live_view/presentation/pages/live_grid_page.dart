@@ -12,7 +12,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class LiveGridPage extends StatefulWidget {
-  const LiveGridPage({super.key});
+  const LiveGridPage({this.initialCameraId, super.key});
+
+  final String? initialCameraId;
 
   @override
   State<LiveGridPage> createState() => _LiveGridPageState();
@@ -26,6 +28,8 @@ class _LiveGridPageState extends State<LiveGridPage> {
   bool _isPanicOverlayActive = false;
   int _panicCountdown = 5;
   Timer? _panicTimer;
+  StreamSubscription<CameraState>? _cameraStateSubscription;
+  String? _pendingCameraId;
 
   bool _isPTZActive = false;
   bool _isAlarmPanelExpanded = false;
@@ -34,6 +38,10 @@ class _LiveGridPageState extends State<LiveGridPage> {
   @override
   void initState() {
     super.initState();
+    _pendingCameraId = widget.initialCameraId;
+    _cameraStateSubscription = context.read<CameraBloc>().stream.listen(
+      _applyPendingCamera,
+    );
     // Dispatch fetch event early so cameras are available when user opens picker
     context.read<CameraBloc>().add(const FetchCameras());
   }
@@ -41,11 +49,33 @@ class _LiveGridPageState extends State<LiveGridPage> {
   @override
   void dispose() {
     _panicTimer?.cancel();
+    _cameraStateSubscription?.cancel();
     if (_isFullScreen) {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
     super.dispose();
+  }
+
+  void _applyPendingCamera(CameraState state) {
+    final cameraId = _pendingCameraId;
+    if (cameraId == null || state is! CameraLoaded || !mounted) return;
+    final matches = state.cameras.where((camera) => camera.id == cameraId);
+    if (matches.isEmpty) return;
+    setState(() {
+      _gridCameras[_selectedSlotIndex] = matches.first;
+      _layoutGridSize = 1;
+      _pendingCameraId = null;
+    });
+  }
+
+  Future<void> _openAddCamera() async {
+    final cameraId = await context.push<String>('/cameras/add');
+    if (!mounted || cameraId == null) return;
+    setState(() => _pendingCameraId = cameraId);
+    final cameraBloc = context.read<CameraBloc>();
+    _applyPendingCamera(cameraBloc.state);
+    if (_pendingCameraId != null) cameraBloc.add(const FetchCameras());
   }
 
   void _toggleFullScreen() {
@@ -169,7 +199,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
           title: const Text(
             'EMERGENCY PANIC ALERT',
             style: TextStyle(
-              color: Color(0xFFEF4444),
+              color: VmsColors.danger,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -232,6 +262,10 @@ class _LiveGridPageState extends State<LiveGridPage> {
         return BlocProvider.value(
           value: context.read<CameraBloc>(),
           child: _CameraPickerContent(
+            onAddCamera: () {
+              Navigator.pop(bottomSheetContext);
+              _openAddCamera();
+            },
             onSelected: (camera) {
               setState(() {
                 _gridCameras[_selectedSlotIndex] = camera;
@@ -354,24 +388,17 @@ class _LiveGridPageState extends State<LiveGridPage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
       drawer: const VmsDrawer(currentRoute: '/live_grid'),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Live Viewport Grid',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+        title: const VmsPageTitle(
+          title: 'Live monitoring',
+          subtitle: 'Select a viewport to manage its camera',
         ),
         actions: [
           IconButton(
             key: const Key('clearAllStreamsButton'),
-            icon: const Icon(Icons.layers_clear, color: Color(0xFF94A3B8)),
-            tooltip: 'Clear All Streams',
+            icon: const Icon(Icons.layers_clear_rounded),
+            tooltip: 'Clear all viewports',
             onPressed: _confirmClearAllSlots,
           ),
           IconButton(
@@ -402,7 +429,8 @@ class _LiveGridPageState extends State<LiveGridPage> {
                               ElevatedButton.icon(
                                 key: const Key('assignCameraButtonTop'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2563EB),
+                                  backgroundColor: VmsColors.primary,
+                                  foregroundColor: const Color(0xFF03201B),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -415,14 +443,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
                                 icon: const Icon(
                                   Icons.add,
                                   size: 14,
-                                  color: Colors.white,
+                                  color: Color(0xFF03201B),
                                 ),
                                 label: const Text(
                                   'Assign Camera',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: Color(0xFF03201B),
                                   ),
                                 ),
                                 onPressed: () => _showCameraPicker(context),
@@ -430,15 +458,13 @@ class _LiveGridPageState extends State<LiveGridPage> {
                               IconButton(
                                 key: const Key('addDeviceTopButtonRight'),
                                 style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: 0.05,
-                                  ),
+                                  backgroundColor: VmsColors.surface,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     side: BorderSide(
-                                      color: const Color(
-                                        0xFF2DD4BF,
-                                      ).withValues(alpha: 0.4),
+                                      color: VmsColors.primary.withValues(
+                                        alpha: 0.4,
+                                      ),
                                     ),
                                   ),
                                   padding: const EdgeInsets.all(8),
@@ -446,10 +472,10 @@ class _LiveGridPageState extends State<LiveGridPage> {
                                 icon: const Icon(
                                   Icons.add,
                                   size: 18,
-                                  color: Color(0xFF2DD4BF),
+                                  color: VmsColors.primary,
                                 ),
                                 tooltip: 'Add New Camera Device',
-                                onPressed: () => context.push('/onboard'),
+                                onPressed: _openAddCamera,
                               ),
                             ],
                           )
@@ -457,31 +483,38 @@ class _LiveGridPageState extends State<LiveGridPage> {
                             height: 44,
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.white10),
+                              color: VmsColors.surface,
+                              borderRadius: BorderRadius.circular(VmsRadii.sm),
+                              border: Border.all(color: VmsColors.border),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.videocam,
-                                      size: 16,
-                                      color: Color(0xFF2DD4BF),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Slot ${_selectedSlotIndex + 1}: ${camera.name}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.videocam,
+                                        size: 16,
+                                        color: VmsColors.primary,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Slot ${_selectedSlotIndex + 1}: ${camera.name}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: VmsColors.textPrimary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
                                 Row(
                                   children: [
                                     TextButton.icon(
@@ -521,7 +554,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                                       ),
                                       tooltip:
                                           'Add / Onboard New Camera Device',
-                                      onPressed: () => context.push('/onboard'),
+                                      onPressed: _openAddCamera,
                                     ),
                                   ],
                                 ),
@@ -629,63 +662,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
             ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-              ),
-              child: BottomNavigationBar(
-                backgroundColor: Colors.transparent,
-                selectedItemColor: const Color(0xFF2DD4BF),
-                unselectedItemColor: const Color(0xFF94A3B8),
-                elevation: 0,
-                type: BottomNavigationBarType.fixed,
-                onTap: (index) {
-                  if (index == 0) {
-                    // Already here
-                  } else if (index == 1) {
-                    context.go('/cameras');
-                  } else if (index == 2) {
-                    context.go('/playback');
-                  } else if (index == 3) {
-                    context.go('/alarms');
-                  } else if (index == 4) {
-                    context.go('/exports');
-                  }
-                },
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.grid_view),
-                    label: 'Live Grid',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.list),
-                    label: 'Cameras',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.history),
-                    label: 'Playback',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.notifications),
-                    label: 'Alarms',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.download),
-                    label: 'Exports',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: const VmsNavigationBar(currentRoute: '/live_grid'),
     );
   }
 
@@ -792,6 +769,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                         ? GetIt.instance<WebRtcService>()
                         : const WebRtcService(),
                     showPtzOverlay: _layoutGridSize == 1 && _isPTZActive,
+                    gridDimension: _layoutGridSize,
                   ),
                 ],
               ),
@@ -804,8 +782,8 @@ class _LiveGridPageState extends State<LiveGridPage> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
       decoration: const BoxDecoration(
-        color: Color(0xFF1E293B),
-        border: Border(top: BorderSide(color: Colors.white12)),
+        color: VmsColors.surface,
+        border: Border(top: BorderSide(color: VmsColors.border)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -829,10 +807,10 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   constraints: const BoxConstraints(minHeight: 48),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2DD4BF).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    color: VmsColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(VmsRadii.sm),
                     border: Border.all(
-                      color: const Color(0xFF2DD4BF).withValues(alpha: 0.35),
+                      color: VmsColors.primary.withValues(alpha: 0.35),
                     ),
                   ),
                   child: Row(
@@ -840,14 +818,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
                     children: [
                       const Icon(
                         Icons.grid_view_rounded,
-                        color: Color(0xFF2DD4BF),
+                        color: VmsColors.primary,
                         size: 18,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         '${_layoutGridSize}x$_layoutGridSize',
                         style: const TextStyle(
-                          color: Color(0xFF2DD4BF),
+                          color: VmsColors.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -876,8 +854,8 @@ class _LiveGridPageState extends State<LiveGridPage> {
                         ? Icons.center_focus_strong
                         : Icons.center_focus_weak,
                     color: _isPTZActive
-                        ? const Color(0xFF2DD4BF)
-                        : Colors.white,
+                        ? VmsColors.primary
+                        : VmsColors.textSecondary,
                   ),
                 ),
               IconButton(
@@ -895,14 +873,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(6),
+                color: VmsColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(VmsRadii.sm),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.videocam,
-                    color: Color(0xFF2DD4BF),
+                    color: VmsColors.primary,
                     size: 14,
                   ),
                   const SizedBox(width: 8),
@@ -912,14 +890,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Colors.white70,
+                        color: VmsColors.textSecondary,
                         fontSize: 11,
                       ),
                     ),
                   ),
                   IconButton(
                     tooltip: 'Remove camera from slot',
-                    icon: const Icon(Icons.close, color: Color(0xFFEF4444)),
+                    icon: const Icon(Icons.close, color: VmsColors.danger),
                     onPressed: () => _clearSlot(_selectedSlotIndex),
                   ),
                 ],
@@ -934,9 +912,11 @@ class _LiveGridPageState extends State<LiveGridPage> {
   Widget _buildAlarmPanel() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        border: Border.all(color: Colors.white12),
+        color: VmsColors.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(VmsRadii.lg),
+        ),
+        border: Border.all(color: VmsColors.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -954,14 +934,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
                 children: [
                   const Icon(
                     Icons.notifications_active_outlined,
-                    color: Color(0xFF2DD4BF),
+                    color: VmsColors.primary,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   const Text(
                     'Alarm Message',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: VmsColors.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -969,7 +949,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   const Spacer(),
                   const Icon(
                     Icons.calendar_today_outlined,
-                    color: Color(0xFF94A3B8),
+                    color: VmsColors.textMuted,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -977,7 +957,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                     _isAlarmPanelExpanded
                         ? Icons.keyboard_arrow_down
                         : Icons.keyboard_arrow_up,
-                    color: const Color(0xFF94A3B8),
+                    color: VmsColors.textMuted,
                   ),
                 ],
               ),
@@ -986,14 +966,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
           if (_isAlarmPanelExpanded)
             Container(
               height: 200,
-              color: const Color(0xFF0F172A),
+              color: VmsColors.canvas,
               child: BlocBuilder<AlarmBloc, AlarmState>(
                 builder: (context, state) {
                   if (state is AlarmLoading) {
                     return const Center(
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFF2DD4BF),
+                          VmsColors.primary,
                         ),
                       ),
                     );
@@ -1003,7 +983,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                       child: Text(
                         state.message,
                         style: const TextStyle(
-                          color: Color(0xFFEF4444),
+                          color: VmsColors.danger,
                           fontSize: 12,
                         ),
                       ),
@@ -1012,20 +992,20 @@ class _LiveGridPageState extends State<LiveGridPage> {
                   if (state is AlarmLoaded) {
                     final alarms = state.alarms;
                     if (alarms.isEmpty) {
-                      return Center(
+                      return const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.notifications_off_outlined,
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: VmsColors.textMuted,
                               size: 48,
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             Text(
                               'No message',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.4),
+                                color: VmsColors.textSecondary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1037,8 +1017,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                     return ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: alarms.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(color: Colors.white12, height: 1),
+                      separatorBuilder: (context, index) => const Divider(),
                       itemBuilder: (context, index) {
                         final alarm = alarms[index];
                         final isAck = alarm.status == 'ACKNOWLEDGED';
@@ -1053,14 +1032,14 @@ class _LiveGridPageState extends State<LiveGridPage> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: isAck
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFFEF4444),
+                                  ? VmsColors.success
+                                  : VmsColors.danger,
                             ),
                           ),
                           title: Text(
                             alarm.eventClass,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: VmsColors.textPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -1068,7 +1047,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                           subtitle: Text(
                             '${alarm.cameraName} • $timeStr',
                             style: const TextStyle(
-                              color: Color(0xFF94A3B8),
+                              color: VmsColors.textMuted,
                               fontSize: 10,
                             ),
                           ),
@@ -1076,7 +1055,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                               ? const Text(
                                   'ACK',
                                   style: TextStyle(
-                                    color: Color(0xFF10B981),
+                                    color: VmsColors.success,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 10,
                                   ),
@@ -1096,7 +1075,7 @@ class _LiveGridPageState extends State<LiveGridPage> {
                                   child: const Text(
                                     'ACK',
                                     style: TextStyle(
-                                      color: Color(0xFFEF4444),
+                                      color: VmsColors.danger,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 10,
                                     ),
@@ -1140,10 +1119,12 @@ class _CameraPickerContent extends StatefulWidget {
   const _CameraPickerContent({
     required this.onSelected,
     required this.currentlyAssigned,
+    required this.onAddCamera,
   });
 
   final ValueChanged<Camera> onSelected;
   final Set<String> currentlyAssigned;
+  final VoidCallback onAddCamera;
 
   @override
   State<_CameraPickerContent> createState() => _CameraPickerContentState();
@@ -1174,8 +1155,10 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1E293B),
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      color: VmsColors.surface,
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(VmsRadii.lg),
+      ),
       child: Container(
         height: MediaQuery.of(context).size.height * 0.6,
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1186,7 +1169,7 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
               width: 32,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: VmsColors.textMuted,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1198,7 +1181,7 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                   const Text(
                     'Select Camera for Slot',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: VmsColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1209,12 +1192,11 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                     icon: const Icon(
                       Icons.add,
                       size: 20,
-                      color: Color(0xFF2DD4BF),
+                      color: VmsColors.primary,
                     ),
                     tooltip: 'Add New Camera Device',
                     onPressed: () {
-                      Navigator.pop(context);
-                      context.push('/onboard');
+                      widget.onAddCamera();
                     },
                   ),
                 ],
@@ -1226,19 +1208,19 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
                 controller: _searchController,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: VmsColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Search by name or IP...',
-                  hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                  hintStyle: const TextStyle(color: VmsColors.textMuted),
                   prefixIcon: const Icon(
                     Icons.search,
-                    color: Color(0xFF94A3B8),
+                    color: VmsColors.textMuted,
                   ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(
                             Icons.clear,
-                            color: Color(0xFF94A3B8),
+                            color: VmsColors.textMuted,
                           ),
                           onPressed: _searchController.clear,
                         )
@@ -1256,7 +1238,7 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                     return const Center(
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFF2DD4BF),
+                          VmsColors.primary,
                         ),
                       ),
                     );
@@ -1265,7 +1247,7 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                     return Center(
                       child: Text(
                         state.message,
-                        style: const TextStyle(color: Color(0xFFEF4444)),
+                        style: const TextStyle(color: VmsColors.danger),
                       ),
                     );
                   }
@@ -1281,7 +1263,7 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                       return const Center(
                         child: Text(
                           'No cameras found',
-                          style: TextStyle(color: Color(0xFF94A3B8)),
+                          style: TextStyle(color: VmsColors.textMuted),
                         ),
                       );
                     }
@@ -1311,11 +1293,11 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                                 horizontal: 16,
                                 vertical: 8,
                               ),
-                              color: Colors.white.withValues(alpha: 0.05),
+                              color: VmsColors.surfaceHigh,
                               child: Text(
                                 'SITE ID: $displaySiteId',
                                 style: const TextStyle(
-                                  color: Color(0xFF94A3B8),
+                                  color: VmsColors.textMuted,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                   letterSpacing: 0.5,
@@ -1334,14 +1316,14 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                                   style: TextStyle(
                                     color: isAssigned
                                         ? Colors.white24
-                                        : Colors.white,
+                                        : VmsColors.textPrimary,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 subtitle: Text(
                                   'IP: ${camera.ipAddress} • ${camera.codec}',
                                   style: const TextStyle(
-                                    color: Color(0xFF94A3B8),
+                                    color: VmsColors.textMuted,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -1351,7 +1333,7 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                                       : Icons.videocam,
                                   color: isAssigned
                                       ? Colors.white24
-                                      : const Color(0xFF94A3B8),
+                                      : VmsColors.textSecondary,
                                 ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -1360,7 +1342,7 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                                       const Text(
                                         'ACTIVE',
                                         style: TextStyle(
-                                          color: Color(0xFF2DD4BF),
+                                          color: VmsColors.primary,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 10,
                                         ),
@@ -1373,8 +1355,8 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         color: isOnline
-                                            ? const Color(0xFF10B981)
-                                            : const Color(0xFFEF4444),
+                                            ? VmsColors.success
+                                            : VmsColors.danger,
                                       ),
                                     ),
                                     const SizedBox(width: 6),
@@ -1382,8 +1364,8 @@ class _CameraPickerContentState extends State<_CameraPickerContent> {
                                       isOnline ? 'ONLINE' : 'OFFLINE',
                                       style: TextStyle(
                                         color: isOnline
-                                            ? const Color(0xFF10B981)
-                                            : const Color(0xFFEF4444),
+                                            ? VmsColors.success
+                                            : VmsColors.danger,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 10,
                                       ),

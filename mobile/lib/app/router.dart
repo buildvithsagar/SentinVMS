@@ -78,7 +78,9 @@ class AppRouter {
                 value: GetIt.instance<AlarmBloc>()..add(const FetchAlarms()),
               ),
             ],
-            child: const LiveGridPage(),
+            child: LiveGridPage(
+              initialCameraId: state.uri.queryParameters['cameraId'],
+            ),
           );
         },
       ),
@@ -92,6 +94,12 @@ class AppRouter {
             ),
             child: const CameraListPage(),
           );
+        },
+      ),
+      GoRoute(
+        path: '/cameras/add',
+        builder: (BuildContext context, GoRouterState state) {
+          return const ManualRtspCameraPage();
         },
       ),
       GoRoute(

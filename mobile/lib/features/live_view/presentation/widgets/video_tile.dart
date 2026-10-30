@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app/core/core.dart';
 import 'package:app/features/camera/camera.dart';
+import 'package:app/features/live_view/presentation/widgets/direct_rtsp_video_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:video_player/video_player.dart';
@@ -13,6 +14,7 @@ class VideoTile extends StatefulWidget {
     required this.decoderPool,
     this.webRtcService,
     this.showPtzOverlay = false,
+    this.gridDimension = 1,
     super.key,
   });
 
@@ -21,6 +23,7 @@ class VideoTile extends StatefulWidget {
   final DecoderPool decoderPool;
   final WebRtcService? webRtcService;
   final bool showPtzOverlay;
+  final int gridDimension;
 
   @override
   State<VideoTile> createState() => _VideoTileState();
@@ -43,7 +46,8 @@ class _VideoTileState extends State<VideoTile> with WidgetsBindingObserver {
   void didUpdateWidget(VideoTile oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.camera.id != widget.camera.id ||
-        oldWidget.camera.siteId != widget.camera.siteId) {
+        oldWidget.camera.siteId != widget.camera.siteId ||
+        oldWidget.gridDimension != widget.gridDimension) {
       unawaited(_initializePlayer());
     }
   }
@@ -72,6 +76,10 @@ class _VideoTileState extends State<VideoTile> with WidgetsBindingObserver {
   Future<void> _initializePlayer() async {
     if (!mounted) return;
     final initializationId = ++_initializationId;
+    if (widget.camera.usesDirectRtsp) {
+      await _cleanupPlayer();
+      return;
+    }
     setState(() {
       _streamState = const LiveStreamState(
         phase: LiveStreamPhase.connectingWebRtc,
@@ -91,7 +99,11 @@ class _VideoTileState extends State<VideoTile> with WidgetsBindingObserver {
       if (mounted) setState(() => _streamState = state);
     });
     unawaited(
-      service.start(cameraId: widget.camera.id, siteId: widget.camera.siteId),
+      service.start(
+        cameraId: widget.camera.id,
+        siteId: widget.camera.siteId,
+        quality: widget.gridDimension >= 3 ? 'sub' : 'main',
+      ),
     );
   }
 
@@ -104,61 +116,64 @@ class _VideoTileState extends State<VideoTile> with WidgetsBindingObserver {
   }
 
   Future<void> _handlePtzMove(String direction) async {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'PTZ Command ($direction) dispatched to ${widget.camera.name}',
-        ),
-        duration: const Duration(milliseconds: 1200),
-        backgroundColor: const Color(0xFF2DD4BF),
-      ),
-    );
     try {
       await widget.cameraRepository.movePtz(
         siteId: widget.camera.siteId,
         cameraId: widget.camera.id,
         direction: direction,
       );
-    } catch (_) {}
+      _showPtzResult('Camera moved $direction.');
+    } catch (_) {
+      _showPtzResult(
+        'PTZ move failed. Check the camera connection.',
+        error: true,
+      );
+    }
   }
 
   Future<void> _handlePtzZoom(String mode) async {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('PTZ Zoom ($mode) dispatched to ${widget.camera.name}'),
-        duration: const Duration(milliseconds: 1200),
-        backgroundColor: const Color(0xFF2DD4BF),
-      ),
-    );
     try {
       await widget.cameraRepository.zoomPtz(
         siteId: widget.camera.siteId,
         cameraId: widget.camera.id,
         zoomMode: mode,
       );
-    } catch (_) {}
+      _showPtzResult('Camera zoom updated.');
+    } catch (_) {
+      _showPtzResult(
+        'PTZ zoom failed. Check the camera connection.',
+        error: true,
+      );
+    }
   }
 
   Future<void> _handlePtzPreset(int presetId, String name) async {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'PTZ Preset $presetId ($name) recalled on ${widget.camera.name}',
-        ),
-        duration: const Duration(milliseconds: 1200),
-        backgroundColor: const Color(0xFF2DD4BF),
-      ),
-    );
     try {
       await widget.cameraRepository.presetPtz(
         siteId: widget.camera.siteId,
         cameraId: widget.camera.id,
         presetId: presetId,
       );
-    } catch (_) {}
+      _showPtzResult('Preset $presetId ($name) recalled.');
+    } catch (_) {
+      _showPtzResult(
+        'PTZ preset failed. Check the camera connection.',
+        error: true,
+      );
+    }
+  }
+
+  void _showPtzResult(String message, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(milliseconds: 1600),
+          backgroundColor: error ? VmsColors.danger : VmsColors.surfaceHigh,
+        ),
+      );
   }
 
   void _showPtzPresetsSheet() {
@@ -218,6 +233,12 @@ class _VideoTileState extends State<VideoTile> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.camera.usesDirectRtsp) {
+      return DirectRtspVideoTile(
+        camera: widget.camera,
+        gridDimension: widget.gridDimension,
+      );
+    }
     final hasActiveVideo = _streamState.isLive;
 
     return Container(

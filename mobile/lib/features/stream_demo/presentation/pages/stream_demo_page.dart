@@ -1,5 +1,4 @@
-import 'package:app/core/theme/vms_theme.dart';
-import 'package:app/core/widgets/vms_drawer.dart';
+import 'package:app/core/core.dart';
 import 'package:app/features/stream_demo/models/stream_demo_source.dart';
 import 'package:app/features/stream_demo/presentation/widgets/hls_player_pane.dart';
 import 'package:app/features/stream_demo/presentation/widgets/local_gateway_player_pane.dart';
@@ -99,8 +98,12 @@ class _StreamDemoPageState extends State<StreamDemoPage> {
     return Scaffold(
       drawer: const VmsDrawer(currentRoute: '/stream_demo'),
       appBar: AppBar(
-        title: const Text('Stream Diagnostics'),
+        title: const VmsPageTitle(
+          title: 'Stream Diagnostics',
+          subtitle: 'Camera and gateway validation',
+        ),
         actions: [
+          const VmsEnvironmentBadge(),
           IconButton(
             tooltip: 'Connection guidance',
             onPressed: _showConnectionHelp,
@@ -367,23 +370,10 @@ class _IdlePreview extends StatelessWidget {
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.connected_tv_outlined,
-                color: VmsColors.textMuted,
-                size: 42,
-              ),
-              SizedBox(height: 12),
-              Text(
-                'Ready for a camera feed',
-                style: TextStyle(
-                  color: VmsColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          child: Icon(
+            Icons.connected_tv_outlined,
+            color: VmsColors.textMuted,
+            size: 42,
           ),
         ),
       ),

@@ -23,3 +23,7 @@ mobile/android/app/release
 
 # Local log files
 *.log
+
+# Inspection and capture artifacts
+sentinvms_*.png
+ui_before.xml

@@ -71,9 +71,13 @@ void main() {
       final authRepository = AuthRepository(dio: dio, storage: storage);
       getIt.registerSingleton<AuthRepository>(authRepository);
 
+      final localCameraStore = LocalCameraStore(storage);
+      getIt.registerSingleton<LocalCameraStore>(localCameraStore);
+
       final cameraRepository = CameraRepository(
         dio: dio,
         demoMode: AppConfig.instance.enableDemoMode,
+        localCameraStore: localCameraStore,
       );
       getIt.registerSingleton<CameraRepository>(cameraRepository);
 

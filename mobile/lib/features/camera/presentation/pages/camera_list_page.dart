@@ -2,6 +2,7 @@ import 'package:app/core/core.dart';
 import 'package:app/features/camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 class CameraListPage extends StatefulWidget {
@@ -18,373 +19,448 @@ class _CameraListPageState extends State<CameraListPage> {
   @override
   void initState() {
     super.initState();
-    // Dispatch initial fetch
     context.read<CameraBloc>().add(const FetchCameras());
     _searchController.addListener(_onSearchChanged);
   }
 
   void _onSearchChanged() {
-    setState(() {
-      _searchQuery = _searchController.text.toLowerCase();
-    });
+    final query = _searchController.text.trim().toLowerCase();
+    if (query != _searchQuery) setState(() => _searchQuery = query);
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchController
+      ..removeListener(_onSearchChanged)
+      ..dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
       drawer: const VmsDrawer(currentRoute: '/cameras'),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         title: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, authState) {
-            final tenantName = authState is Authenticated
-                ? 'Tenant ID: ${authState.user.customerId.substring(0, 8.clamp(0, authState.user.customerId.length))}'
-                : 'Cameras';
-            return Text(
-              'VMS $tenantName',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+            final customerId = authState is Authenticated
+                ? authState.user.customerId
+                : '';
+            final shortId = customerId.length > 8
+                ? customerId.substring(0, 8)
+                : customerId;
+            return VmsPageTitle(
+              title: 'Cameras',
+              subtitle: shortId.isEmpty
+                  ? 'Device inventory'
+                  : 'Tenant $shortId',
             );
           },
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () => context.push('/onboard'),
+          const Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: Center(child: VmsEnvironmentBadge()),
           ),
+          IconButton(
+            tooltip: 'Add camera or device',
+            icon: const Icon(Icons.add_circle_outline_rounded),
+            onPressed: _openAddCamera,
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         children: [
-          // Search Bar
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: SearchBar(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search cameras by name or IP...',
-                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF94A3B8)),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Color(0xFF94A3B8)),
-                        onPressed: _searchController.clear,
-                      )
-                    : null,
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                contentPadding: EdgeInsets.zero,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Colors.white12),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Colors.white12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF2563EB),
-                    width: 1.5,
+              hintText: 'Search by camera name or IP address',
+              leading: const Icon(Icons.search_rounded),
+              trailing: [
+                if (_searchQuery.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Clear search',
+                    onPressed: _searchController.clear,
+                    icon: const Icon(Icons.close_rounded),
                   ),
+              ],
+              elevation: const WidgetStatePropertyAll(0),
+              backgroundColor: const WidgetStatePropertyAll(VmsColors.surface),
+              side: const WidgetStatePropertyAll(
+                BorderSide(color: VmsColors.border),
+              ),
+              shape: WidgetStatePropertyAll(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(VmsRadii.md),
                 ),
               ),
             ),
           ),
-
-          // Camera List
           Expanded(
             child: BlocBuilder<CameraBloc, CameraState>(
               builder: (context, state) {
                 if (state is CameraLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Color(0xFF2563EB),
-                      ),
-                    ),
-                  );
+                  return const VmsLoadingView(label: 'Loading cameras...');
                 }
-
                 if (state is CameraError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: Color(0xFFEF4444),
-                            size: 48,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Failed to load cameras',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(color: Colors.white),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            state.message,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Color(0xFF64748B)),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2563EB),
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () {
-                              context.read<CameraBloc>().add(
-                                const FetchCameras(),
-                              );
-                            },
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    ),
+                  return VmsStateView.error(
+                    title: 'Could not load cameras',
+                    message:
+                        '${state.message}\nCheck the connection and try again.',
+                    onRetry: () =>
+                        context.read<CameraBloc>().add(const FetchCameras()),
+                  );
+                }
+                if (state is! CameraLoaded) return const SizedBox.shrink();
+
+                final filtered = state.cameras
+                    .where((camera) {
+                      return camera.name.toLowerCase().contains(_searchQuery) ||
+                          camera.ipAddress.toLowerCase().contains(
+                            _searchQuery,
+                          ) ||
+                          camera.codec.toLowerCase().contains(_searchQuery);
+                    })
+                    .toList(growable: false);
+
+                if (filtered.isEmpty) {
+                  return VmsStateView.empty(
+                    icon: _searchQuery.isEmpty
+                        ? Icons.videocam_off_outlined
+                        : Icons.search_off_rounded,
+                    title: _searchQuery.isEmpty
+                        ? 'No cameras registered'
+                        : 'No matching cameras',
+                    message: _searchQuery.isEmpty
+                        ? 'Add a camera to begin live monitoring.'
+                        : 'Try a different name, IP address, or codec.',
+                    actionLabel: _searchQuery.isEmpty
+                        ? 'Add camera'
+                        : 'Clear search',
+                    onAction: _searchQuery.isEmpty
+                        ? _openAddCamera
+                        : _searchController.clear,
                   );
                 }
 
-                if (state is CameraLoaded) {
-                  final cameras = state.cameras;
-                  final filteredCameras = cameras.where((cam) {
-                    return cam.name.toLowerCase().contains(_searchQuery) ||
-                        cam.ipAddress.toLowerCase().contains(_searchQuery);
-                  }).toList();
-
-                  if (filteredCameras.isEmpty) {
-                    return Center(
-                      child: Text(
-                        _searchQuery.isNotEmpty
-                            ? 'No cameras matching search query'
-                            : 'No cameras registered for this tenant',
-                        style: const TextStyle(color: Color(0xFF64748B)),
-                      ),
-                    );
-                  }
-
-                  // Group cameras by siteId
-                  final grouped = <String, List<Camera>>{};
-                  for (final cam in filteredCameras) {
-                    grouped.putIfAbsent(cam.siteId, () => []).add(cam);
-                  }
-
-                  final siteIds = grouped.keys.toList()..sort();
-
-                  return RefreshIndicator(
-                    color: const Color(0xFF2DD4BF),
-                    backgroundColor: const Color(0xFF1E293B),
-                    onRefresh: () async {
-                      context.read<CameraBloc>().add(const FetchCameras());
-                    },
-                    child: ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      itemCount: siteIds.length,
-                      itemBuilder: (context, index) {
-                        final siteId = siteIds[index];
-                        final siteCameras = grouped[siteId]!;
-                        final displaySiteId = siteId.length > 8
-                            ? siteId.substring(0, 8)
-                            : siteId;
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Site Header Section
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              color: Colors.white.withValues(alpha: 0.05),
-                              child: Text(
-                                'SITE ID: $displaySiteId',
-                                style: const TextStyle(
-                                  color: Color(0xFF94A3B8),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ),
-
-                            // Cameras in this Site
-                            ...siteCameras.map((camera) {
-                              final isOnline = camera.status == 'CONNECTED';
-                              return Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.12),
-                                  ),
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                    leading: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        camera.ptzCapable
-                                            ? Icons.settings_backup_restore
-                                            : Icons.videocam,
-                                        color: const Color(0xFF94A3B8),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      camera.name,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    subtitle: Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Text(
-                                        'IP: ${camera.ipAddress} • Profile ${camera.onvifProfile} • ${camera.codec}',
-                                        style: const TextStyle(
-                                          color: Color(0xFF94A3B8),
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // Status Dot
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: isOnline
-                                                ? const Color(0xFF10B981)
-                                                : const Color(0xFFEF4444),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        // Status Text
-                                        Text(
-                                          isOnline ? 'ONLINE' : 'OFFLINE',
-                                          style: TextStyle(
-                                            color: isOnline
-                                                ? const Color(0xFF10B981)
-                                                : const Color(0xFFEF4444),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 10,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                            const SizedBox(height: 12),
-                          ],
-                        );
-                      },
-                    ),
-                  );
+                final grouped = <String, List<Camera>>{};
+                for (final camera in filtered) {
+                  grouped.putIfAbsent(camera.siteId, () => []).add(camera);
                 }
+                final siteIds = grouped.keys.toList()..sort();
+                final onlineCount = filtered
+                    .where((camera) => camera.status == 'CONNECTED')
+                    .length;
 
-                return const SizedBox.shrink();
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    context.read<CameraBloc>().add(const FetchCameras());
+                  },
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                          child: Row(
+                            children: [
+                              VmsStatusBadge(
+                                label: '$onlineCount ONLINE',
+                                color: VmsColors.success,
+                                icon: Icons.circle,
+                              ),
+                              const SizedBox(width: 8),
+                              VmsStatusBadge(
+                                label: '${filtered.length} TOTAL',
+                                color: VmsColors.information,
+                                icon: Icons.videocam_outlined,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      for (final siteId in siteIds) ...[
+                        SliverToBoxAdapter(
+                          child: _SiteHeader(
+                            siteId: siteId,
+                            cameraCount: grouped[siteId]!.length,
+                          ),
+                        ),
+                        SliverList.separated(
+                          itemCount: grouped[siteId]!.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            final camera = grouped[siteId]![index];
+                            return Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                16,
+                                index == 0 ? 10 : 0,
+                                16,
+                                index == grouped[siteId]!.length - 1 ? 16 : 0,
+                              ),
+                              child: _CameraCard(
+                                camera: camera,
+                                onTap: () => _showCameraActions(camera),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                    ],
+                  ),
+                );
               },
             ),
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-              ),
-              child: BottomNavigationBar(
-                currentIndex: 1,
-                backgroundColor: Colors.transparent,
-                selectedItemColor: const Color(0xFF2DD4BF),
-                unselectedItemColor: const Color(0xFF94A3B8),
-                elevation: 0,
-                type: BottomNavigationBarType.fixed,
-                onTap: (index) {
-                  if (index == 0) {
-                    context.go('/live_grid');
-                  } else if (index == 1) {
-                    // Already here
-                  } else if (index == 2) {
-                    context.go('/playback');
-                  } else if (index == 3) {
-                    context.go('/alarms');
-                  } else if (index == 4) {
-                    context.go('/exports');
-                  }
-                },
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.grid_view),
-                    label: 'Live Grid',
+      bottomNavigationBar: const VmsNavigationBar(currentRoute: '/cameras'),
+    );
+  }
+
+  void _showCameraActions(Camera camera) {
+    final online = camera.status == 'CONNECTED';
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: VmsPageTitle(
+                    title: camera.name,
+                    subtitle: '${camera.ipAddress} · ${camera.codec}',
                   ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.list),
-                    label: 'Cameras',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.history),
-                    label: 'Playback',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.notifications),
-                    label: 'Alarms',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.download),
-                    label: 'Exports',
-                  ),
-                ],
-              ),
+                ),
+                VmsStatusBadge(
+                  label: online ? 'ONLINE' : 'OFFLINE',
+                  color: online ? VmsColors.success : VmsColors.danger,
+                  icon: online ? Icons.check_circle : Icons.cancel_outlined,
+                ),
+              ],
             ),
-          ),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _MetadataChip(
+                  icon: Icons.video_settings_outlined,
+                  label: 'Profile ${camera.onvifProfile}',
+                ),
+                _MetadataChip(icon: Icons.memory_rounded, label: camera.codec),
+                if (camera.hasSubStream)
+                  const _MetadataChip(
+                    icon: Icons.grid_view_rounded,
+                    label: 'Adaptive sub-stream',
+                  ),
+                if (camera.ptzCapable)
+                  const _MetadataChip(
+                    icon: Icons.control_camera_rounded,
+                    label: 'PTZ capable',
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: online
+                  ? () {
+                      Navigator.pop(sheetContext);
+                      context.go(
+                        Uri(
+                          path: '/live_grid',
+                          queryParameters: {'cameraId': camera.id},
+                        ).toString(),
+                      );
+                    }
+                  : null,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('OPEN LIVE VIEW'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: camera.usesDirectRtsp
+                  ? null
+                  : () {
+                      Navigator.pop(sheetContext);
+                      context.go('/playback');
+                    },
+              icon: const Icon(Icons.history_rounded),
+              label: const Text('OPEN PLAYBACK'),
+            ),
+            if (camera.usesDirectRtsp) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  _confirmDeleteCamera(camera);
+                },
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('REMOVE FROM THIS PHONE'),
+                style: TextButton.styleFrom(foregroundColor: VmsColors.danger),
+              ),
+            ],
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _openAddCamera() async {
+    final cameraId = await context.push<String>('/cameras/add');
+    if (!mounted || cameraId == null) return;
+    context.read<CameraBloc>().add(const FetchCameras());
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Camera saved securely on this phone.')),
+    );
+  }
+
+  Future<void> _confirmDeleteCamera(Camera camera) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove camera?'),
+        content: Text('${camera.name} will be removed from this phone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('REMOVE'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await GetIt.instance<CameraRepository>().deleteLocalCamera(camera.id);
+    if (!mounted) return;
+    context.read<CameraBloc>().add(const FetchCameras());
+  }
+}
+
+class _SiteHeader extends StatelessWidget {
+  const _SiteHeader({required this.siteId, required this.cameraCount});
+
+  final String siteId;
+  final int cameraCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayId = siteId.length > 10 ? siteId.substring(0, 10) : siteId;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.location_on_outlined,
+            color: VmsColors.textMuted,
+            size: 16,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              'SITE $displayId',
+              style: const TextStyle(
+                color: VmsColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          Text(
+            '$cameraCount ${cameraCount == 1 ? 'camera' : 'cameras'}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CameraCard extends StatelessWidget {
+  const _CameraCard({required this.camera, required this.onTap});
+
+  final Camera camera;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final online = camera.status == 'CONNECTED';
+    return VmsSurfaceCard(
+      semanticLabel: '${camera.name}, ${online ? 'online' : 'offline'}',
+      onTap: onTap,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: (online ? VmsColors.primary : VmsColors.textMuted)
+                  .withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(VmsRadii.sm),
+            ),
+            child: Icon(
+              camera.ptzCapable
+                  ? Icons.control_camera_rounded
+                  : Icons.videocam_outlined,
+              color: online ? VmsColors.primary : VmsColors.textMuted,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  camera.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${camera.ipAddress} · ${camera.codec} · Profile ${camera.onvifProfile}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          VmsStatusBadge(
+            label: online ? 'ONLINE' : 'OFFLINE',
+            color: online ? VmsColors.success : VmsColors.danger,
+          ),
+          const SizedBox(width: 2),
+          const Icon(Icons.chevron_right_rounded, color: VmsColors.textMuted),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetadataChip extends StatelessWidget {
+  const _MetadataChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(avatar: Icon(icon, size: 16), label: Text(label));
   }
 }

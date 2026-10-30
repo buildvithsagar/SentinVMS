@@ -290,7 +290,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     final isTest = Platform.environment.containsKey('FLUTTER_TEST');
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: VmsColors.canvas,
       extendBodyBehindAppBar: true,
       appBar: (_showOtpView && !_showVerified)
           ? AppBar(
@@ -298,7 +298,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               elevation: 0,
               leading: IconButton(
                 key: const Key('otpBackButton'),
-                icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8)),
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: VmsColors.textSecondary,
+                ),
                 onPressed: context.read<LoginBloc>().state is LoginLoading
                     ? null
                     : () {

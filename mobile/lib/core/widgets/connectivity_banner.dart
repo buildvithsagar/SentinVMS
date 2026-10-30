@@ -1,4 +1,5 @@
 import 'package:app/core/network/connectivity_service.dart';
+import 'package:app/core/theme/vms_theme.dart';
 import 'package:flutter/material.dart';
 
 class ConnectivityBanner extends StatelessWidget {
@@ -22,45 +23,68 @@ class ConnectivityBanner extends StatelessWidget {
         return Stack(
           children: [
             child,
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              top: isOffline ? 0 : -40,
-              left: 0,
-              right: 0,
-              height: 36,
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  color: const Color(0xFFD32F2F),
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.wifi_off_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'CONTROL PLANE UNREACHABLE - LOCAL VIDEO MAY STILL WORK',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            if (isOffline)
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _OfflineConnectivityBanner(),
               ),
-            ),
           ],
         );
       },
+    );
+  }
+}
+
+class _OfflineConnectivityBanner extends StatelessWidget {
+  const _OfflineConnectivityBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      key: const Key('offlineConnectivityBanner'),
+      color: VmsColors.danger,
+      child: SafeArea(
+        bottom: false,
+        child: Semantics(
+          liveRegion: true,
+          label: 'Control plane offline. Local camera video may still work.',
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.cloud_off_rounded,
+                      color: Colors.white,
+                      size: 17,
+                    ),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Control plane offline - Local video can continue',
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
