@@ -5,7 +5,8 @@ import 'package:app/features/camera/models/camera_model.dart';
 import 'package:mutex/mutex.dart';
 
 class LocalCameraStore {
-  LocalCameraStore({required this._storage});
+  LocalCameraStore([SecureKeyValueStore? storage])
+      : _storage = storage ?? SecureStorageService();
 
   static const storageKey = 'sentinvms_local_rtsp_cameras_v1';
   static const localSiteId = 'local-phone';
@@ -21,6 +22,7 @@ class LocalCameraStore {
     required String name,
     required Uri rtspUri,
     required String codec,
+    Uri? subStreamUri,
   }) async {
     return _mutex.protect(() async {
       final cameras = await _readUnlocked();
@@ -30,6 +32,7 @@ class LocalCameraStore {
         name: name.trim(),
         ipAddress: rtspUri.host,
         rtspUrl: rtspUri.toString(),
+        subStreamUrl: subStreamUri?.toString(),
         onvifProfile: 'RTSP',
         codec: codec.toUpperCase(),
         ptzCapable: false,

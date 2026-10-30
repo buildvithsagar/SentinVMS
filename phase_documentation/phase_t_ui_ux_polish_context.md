@@ -19,3 +19,4 @@
 4. **Local Camera Store (`LocalCameraStore`):**
    - Encrypted local persistence for direct RTSP and user-added cameras via `SecureStorageService`.
    - Unified repository integration in `CameraRepository` merging server and local device registries seamlessly.
+

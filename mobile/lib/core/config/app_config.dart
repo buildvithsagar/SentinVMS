@@ -23,7 +23,14 @@ class AppConfig {
   final Duration receiveTimeout;
   final int maxVideoDecoders;
 
-  static late final AppConfig instance;
+  static AppConfig? _instance;
+  static AppConfig get instance {
+    if (_instance == null) {
+      initialize();
+    }
+    return _instance!;
+  }
+  static set instance(AppConfig config) => _instance = config;
 
   static void initialize() {
     const envString = String.fromEnvironment('ENV', defaultValue: 'demo');

@@ -6,9 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 
 class DirectRtspVideoTile extends StatefulWidget {
-  const DirectRtspVideoTile({required this.camera, super.key});
+  const DirectRtspVideoTile({
+    required this.camera,
+    this.gridDimension = 1,
+    super.key,
+  });
 
   final Camera camera;
+  final int gridDimension;
 
   @override
   State<DirectRtspVideoTile> createState() => _DirectRtspVideoTileState();
@@ -29,13 +34,17 @@ class _DirectRtspVideoTileState extends State<DirectRtspVideoTile>
   @override
   void didUpdateWidget(DirectRtspVideoTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.camera.rtspUrl != widget.camera.rtspUrl) _connect();
+    if (oldWidget.camera.streamUrlForGrid(oldWidget.gridDimension) !=
+        widget.camera.streamUrlForGrid(widget.gridDimension)) {
+      _connect();
+    }
   }
 
   void _connect() {
     final previous = _controller;
+    final streamUrl = widget.camera.streamUrlForGrid(widget.gridDimension);
     final next = VlcPlayerController.network(
-      widget.camera.rtspUrl,
+      streamUrl,
       hwAcc: HwAcc.full,
       options: VlcPlayerOptions(
         advanced: VlcAdvancedOptions([

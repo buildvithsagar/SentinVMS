@@ -1,3 +1,4 @@
+﻿import 'package:app/core/config/app_config.dart';
 import 'package:app/core/theme/vms_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -28,130 +29,14 @@ class VmsPageTitle extends StatelessWidget {
   }
 }
 
-class VmsContentConstraint extends StatelessWidget {
-  const VmsContentConstraint({
-    required this.child,
-    this.maxWidth = 960,
-    this.alignment = Alignment.topCenter,
-    super.key,
-  });
-
-  final Widget child;
-  final double maxWidth;
-  final AlignmentGeometry alignment;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: alignment,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: child,
-      ),
-    );
-  }
-}
-
-class VmsSectionHeader extends StatelessWidget {
-  const VmsSectionHeader({
-    required this.title,
-    this.subtitle,
-    this.trailing,
-    super.key,
-  });
-
-  final String title;
-  final String? subtitle;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-              if (subtitle != null) ...[
-                const SizedBox(height: VmsSpacing.xxs),
-                Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ],
-          ),
-        ),
-        if (trailing != null) ...[
-          const SizedBox(width: VmsSpacing.sm),
-          trailing!,
-        ],
-      ],
-    );
-  }
-}
-
-class VmsInfoBanner extends StatelessWidget {
-  const VmsInfoBanner({
-    required this.message,
-    this.title,
-    this.icon = Icons.info_outline_rounded,
-    this.color = VmsColors.information,
-    super.key,
-  });
-
-  final String? title;
-  final String message;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(VmsSpacing.sm),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(VmsRadii.md),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: VmsSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (title != null) ...[
-                  Text(
-                    title!,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(color: color),
-                  ),
-                  const SizedBox(height: VmsSpacing.xxs),
-                ],
-                Text(message, style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class VmsEnvironmentBadge extends StatelessWidget {
   const VmsEnvironmentBadge({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const environment = String.fromEnvironment('ENV', defaultValue: 'demo');
-    const demoModeOverride = String.fromEnvironment('ENABLE_DEMO_MODE');
-    final isDemo = demoModeOverride.isEmpty
-        ? environment.toLowerCase() == 'demo'
-        : demoModeOverride.toLowerCase() == 'true';
-    final label = isDemo ? 'DEMO' : environment.toUpperCase();
+    final config = AppConfig.instance;
+    final isDemo = config.enableDemoMode;
+    final label = isDemo ? 'DEMO' : config.environment.name.toUpperCase();
     final color = isDemo ? VmsColors.warning : VmsColors.success;
     return Semantics(
       label: '$label environment',
@@ -371,6 +256,128 @@ class VmsLoadingView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class VmsContentConstraint extends StatelessWidget {
+  const VmsContentConstraint({
+    required this.child,
+    this.maxWidth = 1000,
+    super.key,
+  });
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: child,
+      ),
+    );
+  }
+}
+
+class VmsInfoBanner extends StatelessWidget {
+  const VmsInfoBanner({
+    required this.title,
+    required this.message,
+    this.icon = Icons.info_outline_rounded,
+    this.color,
+    super.key,
+  });
+
+  final String title;
+  final String message;
+  final IconData icon;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = color ?? VmsColors.primary;
+    return Container(
+      padding: const EdgeInsets.all(VmsSpacing.md),
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(VmsRadii.md),
+        border: Border.all(color: effectiveColor.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: effectiveColor, size: 20),
+          const SizedBox(width: VmsSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: effectiveColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: VmsColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class VmsSectionHeader extends StatelessWidget {
+  const VmsSectionHeader({
+    required this.title,
+    this.subtitle,
+    this.action,
+    super.key,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: VmsColors.textMuted,
+                    ),
+              ),
+            ],
+          ],
+        ),
+        if (action != null) action!,
+      ],
     );
   }
 }

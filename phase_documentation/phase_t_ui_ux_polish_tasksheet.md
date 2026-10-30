@@ -7,3 +7,4 @@
 - `[x]` T.5: Build `ManualRtspCameraPage` and direct RTSP stream playback integration in `DirectRtspVideoTile`.
 - `[x]` T.6: Implement `DeviceCodePayload` scanner model for QR/barcode autofill in onboarding.
 - `[x]` T.7: Add comprehensive unit and widget tests for `RtspUri`, `LocalCameraStore`, `DeviceCodePayload`, and `ConnectivityBanner`.
+

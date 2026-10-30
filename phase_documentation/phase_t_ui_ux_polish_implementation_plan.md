@@ -28,3 +28,4 @@
 1. Unit tests for RTSP parsing and device code payload extraction.
 2. Local store encryption and round-trip persistence tests.
 3. UI glassmorphism consistency check across all routes.
+

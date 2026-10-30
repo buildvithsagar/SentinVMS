@@ -11,3 +11,4 @@
 * **Screens Polished:** `LiveGridPage`, `CameraListPage`, `PlaybackPage`, `AlarmListPage`, `ExportPage`, `StreamDemoPage`, `LoginPage`.
 * **RTSP Parser & Manual RTSP Camera:** Implemented `rtsp_uri.dart`, `LocalCameraStore`, `ManualRtspCameraPage`, and `DirectRtspVideoTile`.
 * **Code Autofill:** Built `DeviceCodePayload` with support for JSON, query parameters, and raw RTSP URLs with automatic form pre-filling.
+

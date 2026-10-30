@@ -652,7 +652,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
         ],
       ),
       body: VmsContentConstraint(
-        maxWidth: 1000,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
